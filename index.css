@@ -1,0 +1,66 @@
+html
+{
+    scroll-behavior: smooth;
+}
+
+body
+{
+    @media (prefers-color-scheme: light)
+    {
+        --color: black;
+        --background-color: white;
+    }
+
+    @media (prefers-color-scheme: dark)
+    {
+        --color: white;
+        --background-color: black;
+    }
+
+    color: var(--color);
+    background-color: var(--background-color);
+
+    font-family: system-ui;
+}
+
+figure
+{
+    border: none;
+    display: flex;
+    max-width: 100%;
+    margin: auto;
+}
+
+img
+{
+    max-width: 75%;
+    max-height: 100%;
+}
+
+h2, h3
+{
+    margin-top: 3rem;
+    border-bottom: 1px solid;
+}
+
+.header
+{
+    text-align: center;
+    position: sticky;
+    position: -webkit-sticky;
+    z-index: 99;
+    height: 3rem;
+    top: 0;
+    background-color: var(--background-color);
+}
+
+.section-header
+{
+    position: sticky;
+    position: -webkit-sticky;
+    top: 3rem;
+    padding: 0;
+    height: 2rem;
+    color: var(--color);
+    background-color: var(--background-color);
+}

@@ -1,0 +1,47 @@
+body
+{
+    @media (prefers-color-scheme: light)
+    {
+        --color: black;
+        --background-color: white;
+    }
+
+    @media (prefers-color-scheme: dark)
+    {
+        --color: white;
+        --background-color: black;
+    }
+
+    color: var(--color);
+    background-color: var(--background-color);
+}
+
+.body-content
+{
+    position: static;
+    font-size: 12pt;
+}
+
+#open_table_of_contents_on_new_tab_button
+{
+    /* display: none; */
+    position: fixed;
+    bottom: 0;
+    right: 0;
+    z-index: 99;
+    border-style: solid none none solid;
+    outline: none;
+    color: var(--color);
+    background-color: var(--background-color);
+    opacity: 80%;
+    cursor: pointer;
+    padding: 15px;
+    border-radius: 10px;
+    font-size: 18px;
+}
+
+#open_table_of_contents_on_new_tab_button:hover
+{
+    color: var(--background-color);
+    background-color: var(--color);
+}

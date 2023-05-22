@@ -1,0 +1,60 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="color-scheme" content="light dark" />
+
+    <link rel="stylesheet" type="text/css" href="../index.css" />
+    <link rel="stylesheet" type="text/css" href="./branching strategy.css" />
+
+    <title>Branching Strategy</title>
+</head>
+
+<body>
+
+    <div class="header">
+        <h1><a href="../index.html">Branching Strategy</a></h1>
+    </div>
+
+    <div class="body-content">
+        <p>
+        <h2 class="section-header">Overview</h2>
+        <div class="body-content-summary">
+            <b>
+                All <i>UHS Software Engineering Club</i> projects follow a modified Git flow.
+            </b>
+        </div>
+
+        <h2 class="section-header">Git Flow</h2>
+        <div class="body-content-quote">
+            <blockquote cite="https://blog.jetbrains.com/space/2023/04/18/space-git-flow/">
+                <p>
+                    <a href="https://nvie.com/posts/a-successful-git-branching-model/">Git flow</a> is a branching
+                    strategy useful for teams that have clear release processes and need to keep their production
+                    environments stable.
+                    <br>
+
+                    <img src="https://blog.jetbrains.com/wp-content/uploads/2023/05/git-flow.png"
+                        alt="Illustration of Git flow">
+                </p>
+            </blockquote>
+            <em>&mdash;</em> <a href="https://blog.jetbrains.com/author/evgenia-verbina-jetbrains-com/">Evgenia
+                Verbina</a>, <cite><a href="https://blog.jetbrains.com/space/">The Space Blog</a></cite>
+            <br>
+        </div>
+
+        <h2 class="section-header"><i>UHS Software Engineering Club</i>'s Modified Git Flow</h2>
+        <div class="body-content-illustration">
+            <a
+                href="https://viewer.diagrams.net/?tags=%7B%7D&target=blank&highlight=0000ff&edit=_blank&layers=1&nav=1&title=branching%20strategy.xml#R7VvRcps4FP0aPzYDyGD7MY7T5qHdzUw62%2B6jCrLRVEZEyLHdr1%2BBJGwkklAvBcZ2XgxX0pU45x5xJZQRuFvvPjGYxl9ohMjIc6LdCCxGnue6EyB%2BcsteWgI%2FkIYVw5GqdDA84V9IGR1l3eAIZZWKnFLCcVo1hjRJUMgrNsgY3VarLSmp9prCFbIMTyEktvUbjnisn8txDgUPCK9i1fXUVwVrqCsrQxbDiG6PTOB%2BBO4YpVxerXd3iOTgaVxku4%2BvlJYDYyjhTRrsn5%2F%2F3nMw%2F%2Bvjo%2Ff54SH6%2FA%2B6%2FaC8vECyUQ%2B8hjhRA%2BZ7jQKjmyRCuSN3BObbGHP0lMIwL90K3oUt5muiipc04YpIMSQwV10gxtHu1bG7JSIilBBdI872osr2CHMNZHwEd6BsUNG8KpsekBAXCozfAAZYwFigoCS6zSNM3IUEZhkOqzgcQMtRQDvMv6uS%2FPrf3H7jq7vF7qjaYq9uZJcoskLUwE0Mi25YiN4j%2Bk18%2FRp4tY0hAjl%2BqQ6jDnPVwyPFYoCeo%2FieKDdqDvBmBmty9KrRcQgbflxnVvUEDEccshXilqMiAsqnPj0ofCsoYsqXeCcmqMEoRiGjgepNQMGZCcjvU0C%2BEffetC0FlUHRkYRmNWEREK5EUImP4HlDdcGHrJDHrajg%2BumuoFaXi6tV%2FiswRjBDYlgRekGEptqzsEjnst7gtOpO%2BxarzrbORq2z81RrmRZ3pFbXzg%2BXCPINQ7kQByekMtHoT0jemQnJ7TVx%2FHNKAk7HShq3HRhNSe6LO9c3ET%2BNuvG434zFtbP%2BK3ONmPP8nt9era9Bhs4cmL6D%2BKmi63y6nF4adT5wbpyjP9%2FEv1LqnUareJ%2B%2B0YmIlmonoFPO9bx%2BOZzXvNreJKCxeiemeqtuvUm3xNqriMsjth0mu36Feq3vgw%2BduqljId6KJmfOsDR5ceuRMWgpN%2FKDqqNxx7mRZ6e1h00Zm8W%2BN2VAoLKM3jZltLTOZlNGRsBQNmXAxD9NSPamzMzw9KeVdHGrjAC8g3hT7ibGJOg5HVNX9yHJoC6LYVpMc3CfFuMA8%2Bwn4mGsyJLflBaBuCzKEbt%2FETRlitnCVjyNPx%2F5i3x2xITcUUKZMCY0QcVHJ%2BEF%2Fii6dIpw4JAf3aeIYfGsKG8SoryPx4NlniUw%2FUolSLJTSPAqEddMUv%2B%2FJmDdwMghx%2FZ8XDcdmylre0cr7HUehythcG7sTwrisXlVcBohgpZ5SQ4NDiG5VeY1jiJSx4xNJ9xwqmIgd5xxRn8ig98aytugZGamEBYlQQ0l5kZce5Q0WKFd1SSpmg5MTd6rarI5PE81%2Bc7A1NRg0XxVk1wVuwNTk70slmpybxyLw%2FNU0wwMTE0Nvr9d1SSpMpJyV4dzb3KytyrkicmLej%2BZKYOrFy9HtEw6lVSDde9VUpI7awO%2B7zeUvfAtJZWf3Hf0qccfTB94LI9DXobarDNzbiO1jX%2BfMXF7%2BP8NubNx%2BC8YcP8f">This</a>
+            shows an illustration of how Git flow is modified and how it works at <i>UHS Software Engineering Club</i>.
+        </div>
+        </p>
+    </div>
+
+</body>
+
+</html>
