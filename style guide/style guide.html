@@ -46,6 +46,14 @@
                     <li><a href="#scoping-thread_local-variables"><code>thread_local</code> Variables</a></li>
                 </ul>
             </li>
+            <li>
+                <a href="#classes">Classes</a>
+                <ul>
+                    <li><a href="#classes-doing-work-in-constructors">Doing Work in Constructors</a></li>
+                    <li><a href="#classes-implicit-conversions">Implicit Conversions</a></li>
+                    <li><a href="#classes-copyable-and-movable-types">Copyable and Movable Types</a></li>
+                </ul>
+            </li>
         </ul>
 
         <button onclick="open_table_of_contents_on_new_tab()" id="open_table_of_contents_on_new_tab_button"
@@ -802,7 +810,7 @@
             Note that references are not objects, and thus they are not subject to the constraints on destructibility. The constraint on dynamic initialization still applies, though. In particular, a function-local static reference of the form <code>static T &t = *new T;</code> is allowed.
         </p>
 
-        <h5 class="section-header" style="color: red;">Decision on initialization</h5>
+        <h5 class="section-header" style="color: blue;">Decision on initialization</h5>
         <p>
             Initialization is a more complex topic. This is because we must not only consider whether class constructors execute, but we must also consider the evaluation of the initializer:
             <pre>
@@ -875,7 +883,172 @@
         <a id="scoping-thread_local-variables" />
         <h3 class="section-header"><code>thread_local</code> Variables</h3>
         <p>
+            <code>thread_local</code> variables that aren't declared inside a funciton must be initialized with a true compile-time constant, and this must be enforced by using the <a href="https://github.com/abseil/abseil-cpp/blob/master/absl/base/attributes.h">ABSL_CONST_INIT</a> attribute. Prefer <code>thread_local</code> over other ways of defining thread-local data.
+        </p>
 
+        <h4>Definition:</h4>
+        <p>
+            Variables can be declared with the <code>thread_local</code> specifier:
+            <pre>
+                <code>
+                    thread_local Foo foo = ...;
+                </code>
+            </pre>
+        </p>
+        <p>
+            Such a variable is actually a collection of objects, so that when different threads access it, they are actually accessing different objects. <code>thread_local</code> variables are much like <a href="#scoping-static-and-global-variables">static storage duration variables</a> in many respects. For instance, they can be declared at namespace scope, inside functions, or as static class members, but not as ordinary class members.
+        </p>
+        <p>
+            <code>thread_local</code> variable instances are initialized much like static variables, except that they must be initialized separately for each thread, rather than once at program startup. This means that <code>thread_local</code> variables declared within a function are safe, but other <code>thread_local</code> variables are subject to the same initialization-order issues as static variables (and more besides).
+        </p>
+        <p>
+            <code>thread_local</code> varaible instances are not destroyed before their thread terminates, so they do not have the destruction-order issues of static variables.
+        </p>
+
+        <h4>Pros:</h4>
+        <ul>
+            <li>Thread-local data is inherently safe from races (because only one thread can ordinarily access it), which makes <code>thread_local</code> useful for concurrent programming.</li>
+            <li><code>thread_local</code> is the only standard-supported way of creating thread-local data.</li>
+        </ul>
+
+        <h4>Cons:</h4>
+        <ul>
+            <li>Accessing a <code>thread_local</code> variable may trigger execution of an unpredictable and uncontrollable amount of other code.</li>
+            <li><code>thread_local</code> variables are effectively global variables, and have all the drawbacks of global variables other than lack of thread-safety.</li>
+            <li>The memory consumed by a <code>thread_local</code> variable scales with the number of running threads (in the worst case), which can be quite large in a program.</li>
+            <li>Non-static data members cannot be <code>thread_local</code>.</li>
+            <li><code>thread_local</code> may not be as efficient as certain compiler intrinsics.</li>
+        </ul>
+
+        <h4>Decision:</h4>
+        <p>
+            <code>thread_local</code> variables inside a function have no safety concerns, so they can be used without restriction. Note that one can use a function-scope <code>thread_local</code> to simulate a class- or namespace-scope <code>thread_local</code> by defining a funciton or static method that exposes it:
+            <pre>
+                <code>
+                    Foo &MyThreadLocalFoo()
+                    {
+                        thread_local Foo result = ComplicatedInitialization();
+                        return result;
+                    } // MyThreadLocalFoo
+                </code>
+            </pre>
+        </p>
+        <p>
+            <code>Thread_local</code> variables at class or namespace scope must be initialized with a true compile-time constant (i.e., they must have no dynamic initialization). To enforce this, <code>thread_local<code> variables at class or namespace scope must be annotated with <a href="https://github.com/abseil/abseil-cpp/blob/master/absl/base/attributes.h"><code>ABSL_CONST_INIT</code></a> (or <code>constexpr</code>, but that should be rare):
+            <pre>
+                <code>
+                    ABSL_CONST_INIT thread_local Foo foo = ...;
+                </code>
+            </pre>
+        </p>
+        <p>
+            <code>thread_local</code> should be preferred over other mechanisms for defining thread-local data.
+        </p>
+
+        <a id="classes" />
+        <h2 class="section-header">Classes</h2>
+        <p>
+            Classes are the fundamental unit of code in C++. Naturally, we use them extensively. This section lists the main dos and don'ts one should follow when writing a class.
+        </p>
+
+        <a id="classes-doing-work-in-constructors" />
+        <h3 class="section-header">Doing Work in Constructors</h3>
+        <p>
+            Avoid virtual method calls in constructors, and avoid initialization that can fail if you can't signal an error.
+        </p>
+
+        <h4>Definition:</h4>
+        <p>
+            It is possible to perform arbitrary initialization in the body of the constructor.
+        </p>
+
+        <h4>Pros:</h4>
+        <ul>
+            <li>No need to worry about whether the class has been initialized or not.</li>
+            <li>Objects that are fully initialized by constructor call can be <code>const</code> and may also be easier to use with standard containers or algorithms.</li>
+        </ul>
+
+        <h4>Cons:</h4>
+        <ul>
+            <li>If the work calls virtual functions, these calls will not get dispatched to the subclass implementations. Future modification to one's class can quietly introduce this problem even if one's class is not currently subclassed, causing much confusion.</li>
+            <li>There is no easy way for constructors to signal errors, short of crashing the program (not always appropriate) or using exceptions.</li>
+            <li>If the work fails, we now have an object whose initialization code failed, so it may be an unusual state requiring a <code>bool IsValid()</code> state checking mechanism (or similar) which is easy to forget to call.</li>
+            <li>One cannot take the address of a constructor, so whatever work is done in the constructor cannot easily be handed off to, for example, another thread.</li>
+        </ul>
+
+        <h4>Decision:</h4>
+        <p>
+            Constructors should never call virtual funcitons. If appropriate for one's code, terminating the program may be an appropriate error handling response. Otherwise, consider a factory function or <code>Init()</code> method as described in <a href="https://abseil.io/tips/42">TotW #42</a>. Avoid <code>Init()</code> methods on objects with no other states that affect which public methods may be called (semi-constructed objects of this form are particularly hard to work with correctly).
+        </p>
+
+        <a id="classes-implicit-conversions" />
+        <h3 class="section-header">Implicit Conversions</h3>
+        <p>
+            Do not define implicit conversions. Use the <code>explicit</code> keyword for conversion operators and single-argument constructors.
+        </p>
+
+        <h4>Definition:</h4>
+        <p>
+            Implicit conversions allow an object of one type (called the <i>source type</i>) to be used where a differnt type (called the <i>destination type</i>) is expected, such as when passing an <code>int</code> argument to a function that takes a <code>double</code> parameter.
+        </p>
+        <p>
+            In addition to the implicit conversions defined by the language, users can define their own, by adding appropriate members to the class definition of the source or destination type. An implicit conversion is the source type is defined by a type conversion operator named after the destination type (e.g., <code>operator bool()</code>). An implicit conversion in the destination type is defined by a constructor that can take the source type as its only argument (or only argument with no default value).
+        </p>
+        <p>
+            The <code>explicit</code> keyword can be applied to a constructor or a conversion operator, to ensure that it can only be used when the destination type is explicit at the point of use, e.g., with a cast. This applies not only to implicit conversions, but to list initialization syntax:
+            <pre>
+                <code>
+                    class Foo
+                    {
+                    public:
+                        explicit Foo(int x, double y);
+                    }; // Foo
+
+                    void Func(Foo f);
+                </code>
+            </pre>
+            <pre>
+                <code style="background-color: red;">
+                    Func({42, 3.14});   // Error
+                </code>
+            </pre>
+        </p>
+        <p>
+            This kind of code isn't technically an implicit conversion, but the language treats it as one as far as <code>explicit</code> is concerned.
+        </p>
+
+        <h4>Pros:</h4>
+        <ul>
+            <li>Implicit conversions can make a type more usable and expressive by eliminating the need to explicitly name a type when it's obvious.</li>
+            <li>Implicit conversions can be a simpler alternative to overloading, such as when a single function with a <code>string_view</code> parameter takes the place of separate overloads for <code>std::string</code> and <code>const char *</code>.</li>
+            <li>List initialization syntax is a concise and expressive way of initializing objects.</li>
+        </ul>
+
+        <h4>Cons:</h4>
+        <ul>
+            <li>Implicit conversions can hide type-mismatch bugs, where the destination type does not match the user's expectation, or the user is unaware that any conversion will take place.</li>
+            <li>Implicit conversions can make code harder to read, particularly in the presence of overloading, by making it less obvious what code is actually getting called.</li>
+            <li>Constructors that take a single argument may accidentally be usable as implicit type converions, even if they are not intended to do so.</li>
+            <li>When a single-argument constructor is not marked <code>explicit</code>, there's no reliable way to tell whether it's intended to define an implicit conversion, or the author simply forgot to mark it.</li>
+            <li>Implicit converions can lead to call-site ambiguities, especially when there are bidirectional implicit conversions. This can be caused either by having two types that both provide an implicit conversion, or by a single type that has both an implicit constructor and an implicit type conversion operator.</li>
+            <li>List initialization can suffer from the same problems if the destination type is implicit, particularly if the list has only a single element.</li>
+        </ul>
+
+        <h4>Decision:</h4>
+        <p>
+            Type conversion operators, and constructors that are callable with a single argument, must be marked <code>explicit</code> in the class definition. As an exception, copy and move constructors should not be <code>explicit</code>, since they do not perform type conversion.
+        </p>
+        <p>
+            Implicit conversions can sometimes be necessary and appropriate for types that are designed to be interchangeable, for example when objects of two types are just different representations of the same underlying value. In that case, contact one's project leads or club's architect or club's lead engineer to request a waiver of this rule.
+        </p>
+        <p>
+            Constructors that cannot be called witha single argument may omit <code>explicit</code>. Constructors that take a single <code>std::initializer_list</code> parameter should also omit <code>explicit</code>, in order to support copy-initialization (e.g., <code>MyType m = {1, 2};</code>).
+        </p>
+
+        <a id="classes-copyable-and-movable-types" />
+        <h3 class="section-header">Copyable and Movable Types</h3>
+        <p>
+            
         </p>
         
     </div>
