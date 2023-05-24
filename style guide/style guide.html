@@ -1270,11 +1270,17 @@
             For consistency with <abbr title="Standard Template Library">STL</abbr>, one can use <code>struct</code> instead of <code>class</code> for stateless types, such as traits, <a href="">template metafunctions</a>, and some functors.
         </p>
 
-        <!-- <a id="classes-structs-vs-pairs-and-tuples" />
+        <a id="classes-structs-vs-pairs-and-tuples" />
         <h3 class="section-header">Structs vs. Pairs and Tuples</h3>
         <p>
-
-        </p> -->
+            Prefer to use a <code>struct</code> instead of a pair or a tuple whenever the elements can have meaningful names.
+        </p>
+        <p>
+            While using pairs and tuples can avoid the need to define a custom type, potentially saving work when <i>writing</i> code, a meaningful field name will almost always be much clearer when <i>reading</i> code than <code>.first</code>, <code>.second</code>, or <code>std::&lt;get&gt;</code>. While C++14's introduction of <code>std::get&lt;Type&gt;</code> to access a tuple element by type rather than index (when the type is unique) can sometimes partially mitigate this, a field name is usually substantially clearer and more informative than a type.
+        </p>
+        <p>
+            Pairs and tuples may be appropriate in generic code where there are not specific meanings for the elements of the pair or tuple. Their use may also be required in order to interoperate with existing code or APIs.
+        </p>
 
     </div>
 
