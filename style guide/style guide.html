@@ -44,6 +44,7 @@
                     <li><a href="#scoping-local-variables">Local Variables</a></li>
                     <li><a href="#scoping-static-and-global-variables">Static and Global Variables</a></li>
                     <li><a href="#scoping-thread_local-variables"><code>thread_local</code> Variables</a></li>
+                    <li><a href="#scoping-referencing-symbols">Referencing Symbols</a></li>
                 </ul>
             </li>
             <li>
@@ -944,6 +945,109 @@
         <p>
             <code>thread_local</code> should be preferred over other mechanisms for defining thread-local data.
         </p>
+
+        <a id="scoping-referencing-symbols" />
+        <h3 class="section-header">Referencing Symbols</h3>
+        <p>
+            Show detailed scoping for every symbol one references.
+        </p>
+
+        <h4>Definition:</h4>
+        <p>
+            It's possible to use different ways to reference the same symbol, therefore we will define a standard way to reference those symbols in our projects.
+        </p>
+
+        <h4>Pros:</h4>
+        <ul>
+            <li>Shows collaborators clearly what symbol one intends to reference.</li>
+            <li>Minimizes the chance for compilers to reference a non-intended symbol, causing hard-to-find bugs.</li>
+        </ul>
+
+        <h4>Cons:</h4>
+        <ul>
+            <li>Increases the chance of typos.</li>
+            <li>Appends more typing when one develops a project, resulting in longer development cycle.</li>
+        </ul>
+
+        <h4>Decision:</h4>
+        <ul>
+            <li>
+                When one references symbols from C libraries, specify the full scoping, starting from the global scope. E.g.,:
+                <pre>
+                    <code>
+                        // Notice the scope resolution operator at the very beginning of the C function call.
+                        int sockfd = ::socket(AF_INET, SOCK_STREAM, 0);
+                    </code>
+                </pre>
+            </li>
+            <li>
+                When one references symbols from inside a namespace, specify the relative scoping, e.g.:
+                <pre>
+                    <code>
+                        namespace mynamespace
+                        {
+
+                            namespace nestednamespace
+                            {
+
+                                // Definition referenced below.
+                                void Foo() {}
+                                
+                            } // nestednamespace
+
+                            // Notice the relative scope is specified.
+                            nestednamespace::Foo();
+
+                            void Bar() {}
+
+                            void Baz()
+                            {
+                                // Notice there is no scope resolution operator as they are in the same namespace.
+                                Bar();
+                            } // Baz
+
+                        } // mynamespace
+                    </code>
+                </pre>
+            </li>
+            <li>
+                When one wants to reference symbols inside a namespace from another, including its outer namespace (if it's nested), specify the full scoping, same as what one is intended to do to reference a symbol from a C library. E.g.,:
+                <pre>
+                    <code>
+                        // In global namespace.
+                        namespace namespace1
+                        {
+
+                            void Foo() {}
+                            
+                        } // namespace1
+
+                        namespace namespace2
+                        {
+
+                            void Bar()
+                            {
+                                // Notice the scope resolution operator at the beginning.
+                                ::namespace1::Foo();
+                            } // Bar
+                            
+                        } // namespace namespace2
+                    </code>
+                </pre>
+            </li>
+            <li>
+                When one wants to define a namespace alias, specify the full scoping, same as what one is intended to do to reference a symbol from a C library. E.g.,:
+                <pre>
+                    <code>
+                        // In the global namespace
+                        namespace mynamespace {}
+
+                        // Notice the scope resolution operator at the beginning.
+                        namespace my = ::mynamespace;
+                    </code>
+                </pre>
+            </li>
+        </ul>
 
         <a id="classes" />
         <h2 class="section-header">Classes</h2>
