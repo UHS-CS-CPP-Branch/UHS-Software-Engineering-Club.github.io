@@ -44,7 +44,7 @@
                     <li><a href="#scoping-local-variables">Local Variables</a></li>
                     <li><a href="#scoping-static-and-global-variables">Static and Global Variables</a></li>
                     <li><a href="#scoping-thread_local-variables"><code>thread_local</code> Variables</a></li>
-                    <li><a href="#scoping-referencing-symbols">Referencing Symbols</a></li>
+                    <li><a href="#scoping-symbol-references">Symbol References</a></li>
                 </ul>
             </li>
             <li>
@@ -53,6 +53,8 @@
                     <li><a href="#classes-doing-work-in-constructors">Doing Work in Constructors</a></li>
                     <li><a href="#classes-implicit-conversions">Implicit Conversions</a></li>
                     <li><a href="#classes-copyable-and-movable-types">Copyable and Movable Types</a></li>
+                    <li><a href="#classes-structs-vs-classes">Structs vs. Classes</a></li>
+                    <li><a href="#classes-structs-vs-pairs-and-tuples">Structs vs. Pairs and Tuples</a></li>
                 </ul>
             </li>
         </ul>
@@ -946,8 +948,8 @@
             <code>thread_local</code> should be preferred over other mechanisms for defining thread-local data.
         </p>
 
-        <a id="scoping-referencing-symbols" />
-        <h3 class="section-header">Referencing Symbols</h3>
+        <a id="scoping-symbol-references" />
+        <h3 class="section-header">Symbol References</h3>
         <p>
             Show detailed scoping for every symbol one references.
         </p>
@@ -995,18 +997,18 @@
                                 
                             } // nestednamespace
 
-                            // Notice the relative scope is specified.
-                            nestednamespace::Foo();
-
                             void Bar() {}
 
                             void Baz()
                             {
+                                // Notice the relative scope is specified.
+                                nestednamespace::Foo();
+
                                 // Notice there is no scope resolution operator as they are in the same namespace.
                                 Bar();
                             } // Baz
 
-                        } // mynamespace
+                        } // namespace mynamespace
                     </code>
                 </pre>
             </li>
@@ -1020,7 +1022,7 @@
 
                             void Foo() {}
                             
-                        } // namespace1
+                        } // namespace namespace1
 
                         namespace namespace2
                         {
@@ -1187,6 +1189,92 @@
         <p>
             Copy constructors are invoked implicitly, which makes the invocation easy to miss. This may cause confusion for programmers used to languages where pass-by-reference in conventional or mandatory. It may also encourage excessive copying, which can cause performance problems.
         </p>
+
+        <h4>Decision:</h4>
+        <p>
+            Every class's public interface must make clear which copy and move operations the class supports. This should usually take the form of explicitly declaring and/or delete the appropriate operations in the <code>public</code> section of the declaration.
+        </p>
+        <p>
+            Specifically, a copyable class should explicitly declare the copy operations, a move-only class should explicitly declare the move operations, and a non-copyable/movable class should explicitly delete the copy operations. A copyable class may also declare move operations in order to support efficient moves. Explicitly declaring or deleting all four copy/move operations is permitted, but not required. If you provide a copy or move assignment operator, you must also provide the corresponding constructor.
+            <pre>
+                <code>
+                    class Copyable
+                    {
+                    public:
+                        Copyable(const Copyable &other) = default;
+                        Copyable &operator=(const Copyable &other) = default;
+
+                        // The implicit move operations are suppresed by the declarations above (the const qualifiers).
+                        // You may explicitly declare move operations to support efficient moves. 
+                    }; // class Copyable
+
+                    class MoveOnly
+                    {
+                    public:
+                        MoveOnly(MoveOnly &&other) = default;
+                        MoveOnly &operator=(MoveOnly &&other) = default;
+
+                        // The copy operations are implicitly deleted, 
+                        // but one can spell that out explicitly 
+                        // if one wants:
+                        MoveOnly(MoveOnly &) = delete;
+                        MoveOnly &operator=(MoveOnly &) = delete;
+                    }; // class MoveOnly
+
+                    class NotCopyableOrMovable
+                    {
+                    public:
+                        // Not copyable or movable
+                        NotCopyableOrMovable(const NotCopyableOrMovable &) = delete;
+                        NotCopyableOrMovable &operator=(const NotCopyableOrMovable &) = delete;
+
+                        // The move operations are implicitly disabled, 
+                        // but one can spell that out explicitly
+                        // if one wants:
+                        NotCopyableOrMovable(NotCopyableOrMovable &&) = delete;
+                        NotCopyableOrMovable &operator=(NotCopyableOrMovable &&) = delete;
+                    }; // class NotCopyableOrMovable
+                </code>
+            </pre>
+        </p>
+        <p>
+            These declarations/deletions can be omitted only if they are obvious:
+            <ul>
+                <li>If the class has no <code>private</code> section, like a <a href="#classes-structs-vs-classes">struct</a> or an interface-only base class, then the copyability/movability can be determined by the copyability/movability of any public data members.</li>
+                <li>If a base class clearly isn't copyable or movable, derived classes naturally won't be either. An interface-only base class that leaves these operations implicit is not sufficient to make concrete subclasses clear.</li>
+                <li>Note that if you explicitly declare or delete either the constructor or assignment operation for copy, the other copy operation is not obvious and must be declared and deleted. Likewise for move operations.</li>
+            </ul>
+        </p>
+        <p>
+            A type should not be copyable/movable if the meaning of copying/moving is unclear to a casual user, or if it incurs unexpected costs. Move operations for copyable types are strictly a performance optimization and are a potential source of bugs and complexity, so avoid defining them unless they are significantly more efficient than the corresponding copy operations. If one's type provides copy operations, it is recommended that one designs one's class so that the default implementation of those operations is correct. Remember to review the correctness of any defaulted operations as you would any other code.
+        </p>
+        <p>
+            To eliminate the risk of slicing, prefer to make base-classes abstract, by making their constructors protected, by declaring their destructors protected, or by giving them one or more pure virtual member functions. Prefer to avoid deriving from concrete classes.
+        </p>
+
+        <a id="classes-structs-vs-classes" />
+        <h3 class="section-header">Structs vs. Classes</h3>
+        <p>
+            Use a <code>struct</code> only for passive objects that carry data; everything else is a <code>class</code>.
+        </p>
+        <p>
+            The <code>struct</code> and <code>class</code> keywords behave almost identically in C++. We add our own semantic meanings to each keyword, so one should use the appropriate keyword for the data-type one is defining.
+        </p>
+        <p>
+            <code>struct</code>s should be used for passive objects that carry data, and may have associated constants. All fields must be public. The struct must not have invariants that imply relationships between different fields, since direct user access to those fields may break those invariants. Constructors, destructors, and helper methods may be present; however, these methods must not require or enforce any invariants.
+        </p>
+        <p>
+            If more functionality or invariants are required, a <code>class</code> is more appropriate. If in doubt, make it a <code>class</code>.
+        </p>
+        <p>
+            For consistency with <abbr title="Standard Template Library">STL</abbr>, one can use <code>struct</code> instead of <code>class</code> for stateless types, such as traits, <a href="">template metafunctions</a>, and some functors.
+        </p>
+
+        <!-- <a id="classes-structs-vs-pairs-and-tuples" />
+        <h3 class="section-header">Structs vs. Pairs and Tuples</h3>
+        <p>
+
+        </p> -->
 
     </div>
 
