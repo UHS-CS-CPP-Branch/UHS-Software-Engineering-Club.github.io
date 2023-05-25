@@ -55,6 +55,7 @@
                     <li><a href="#classes-copyable-and-movable-types">Copyable and Movable Types</a></li>
                     <li><a href="#classes-structs-vs-classes">Structs vs. Classes</a></li>
                     <li><a href="#classes-structs-vs-pairs-and-tuples">Structs vs. Pairs and Tuples</a></li>
+                    <li><a href="#classes-inheritance">Inheritance</a></li>
                 </ul>
             </li>
         </ul>
@@ -1280,6 +1281,47 @@
         </p>
         <p>
             Pairs and tuples may be appropriate in generic code where there are not specific meanings for the elements of the pair or tuple. Their use may also be required in order to interoperate with existing code or APIs.
+        </p>
+
+        <a id="classes-inheritance" />
+        <h3 class="section-header">Inheritance</h3>
+        <p>
+            Composition is often more appropriate than inheritance. When using inheritance, make it <code>public</code>.
+        </p>
+        
+        <h4>Definition:</h4>
+        <p>
+            When a sub-class inherits from a base class, it includes the definitions of all the data and operations that the base class defines. "Interface inheritance" is the inheritance from a pure abstract base class (one with no state or defined methods); all other inheritance is "implementation inheritance".
+        </p>
+
+        <h4>Pros:</h4>
+        <p>
+            Implementation inheritance reduces code size by re-using the base class code as it specializes an existing type. Because inheritance is a compile-time declaration, one and the compiler can understand the operation and detect errors. Interface inheritance can be used to programmatically enforce that a class expose a particular API. Again, the compiler can detect errors, in this case, when a class does not define a necessary method of the API.
+        </p>
+
+        <h4>Cons:</h4>
+        <p>
+            For implementation inheritance, because the code implementing a sub-class is spread between the base and the sub-class, it can be more difficult to understand an implementation. The sub-class cannot override functions that are not virtual, so the sub-class cannot change implementation.
+        </p>
+        <p>
+            Multiple inheritance is especially problematic, because it often imposes a higher performance overhead (in fact, the performance drops from single inheritance to multiple inheritance can often be greater than the performance drop from ordinary to virtual dispatch), and because it risks leading to "diamond" inheritance patterns, which are prone to ambiguity, confusion, and outright bugs.
+        </p>
+
+        <h4>Decision:</h4>
+        <p>
+            All inheritance should be <code>public</code>. If one wants to do private inheritance, one should be including an instance of the base class as a member instead. One may use <code>final</code> on classes when one doesn't intend to support using them as base classes.
+        </p>
+        <p>
+            Do not overuse implementation inheritance. Composition is often more appropriate. Try to restrict use of inheritance to the "is-a" case: <code>Bar</code> subclasses <code>Foo</code> if it can reasonably be said that <code>Bar</code> "is a kind of" <code>Foo</code>.
+        </p>
+        <p>
+            Limit the use of <code>protected</code> to those member functions that might need to be accessed from subclasses. Note that <a href="">data members should be <code>private</code></a>.
+        </p>
+        <p>
+            Explicitly annotate overrides of virtual functions or virtual destructors with exactly one of an <code>override</code> or (less frequently) <code>final</code> specifier. Do not use <code>virtual</code> when declaring an override. Rationale: A function or destructor marked <code>override</code> or <code>final</code> that is not an override of a base class virtual function will not compile, and this helps catch common errors. The specifiers serve as documentation; if no specifier is present, the reader has to check all ancestors of the class in question to determine if the function or destructor is virtual or not.
+        </p>
+        <p>
+            Multiple inheritance is permitted, but multiple <i>implementation</i> inheritance is stronly discouraged.
         </p>
 
     </div>
