@@ -57,6 +57,14 @@
                     <li><a href="#classes-structs-vs-pairs-and-tuples">Structs vs. Pairs and Tuples</a></li>
                     <li><a href="#classes-inheritance">Inheritance</a></li>
                     <li><a href="#classes-operator-overloading">Operator Overloading</a></li>
+                    <li><a href="#classes-access-control">Access Control</a></li>
+                    <li><a href="#classes-declaration-order">Declaration Order/a></li>
+                </ul>
+            </li>
+            <li>
+                <a href="#functions">Functions</a>
+                <ul>
+                    <li><a href="#functions-inputs-and-outputs">Inputs and Outputs</a></li>
                 </ul>
             </li>
         </ul>
@@ -1379,6 +1387,65 @@
         </p>
 
         <a id="classes-access-control" />
+        <h3 class="section-header">Access Control</h3>
+        <p>
+            Make classes' data members <code>private</code>, unless they are <a href="#naming-constant-names">constants</a>. This simplifies reasoning about invariants, at the cost of some easy boilerplate in the form of accessors (usually <code>const</code>) if necessary.
+        </p>
+        <p>
+            For technical reasons, we allow data members of a test fixture class defined in a <code>.cc</code> file to be <code>protected</code> when using <a href="https://github.com/google/googletest">Google Test</a>. If a test fixture class is defined outside of the <code>.cc</code> file it is used in, for example in a <code>.h</code> file, make data members <code>private</code>.
+        </p>
+
+        <a id="classes-declaration-order" />
+        <h3 class="section-header">Declaration Order</h3>
+        <p>
+            Group similar declarations together, placing <code>public</code> parts earlier.
+        </p>
+        <p>
+            A class definition should usually start with a <code>public:</code> section, followed by <code>protected:</code>, then <code>private:</code>. Omit sections that would be empty.
+        </p>
+        <p>
+            Within each section, prefer grouping similar kinds of declarations together, and prefer the following order:
+            <nl>
+                <li>Types and type aliases (<code>typedef</code>, <code>using</code>, <code>enum</code>, nested structs and classes, and <code>friend</code> types)</li>
+                <li>(Optionally, for structs only) non-<code>static</code> data members</li>
+                <li>Static constants</li>
+                <li>Factory functions</li>
+                <li>Constructors and assignment operators</li>
+                <li>Destructor</li>
+                <li>All other functions (<code>static</code> and non-<code>static</code> member functions, and <code>friend</code> functions)</li>
+                <li>All other data members (<code>static</code> and non-<code>static</code>)</li>
+            </nl>
+        </p>
+        <p>
+            Do not put large method definitions inline in the class definition. Usually, only trivial or performance-critical, and very short, methods may be defined inline. See <a href="#header-files-inline-functions">Inline Functions</a> for more details.
+        </p>
+
+        <a id="functions" />
+        <h2 class="section-header">Functions</h2>
+
+        <a id="functions-inputs-and-outputs" />
+        <h3 class="section-header">Inputs and Outputs</h3>
+        <p>
+            The output of a C++ function is naturally provided via a return value and sometimes via output parameters (or in/out parameters).
+        </p>
+        <p>
+            Prefer using return values over output parameters: they improve readability, and often provide the same or better performance.
+        </p>
+        <p>
+            Prefer to return by value or, failing that, return by reference. Avoid returning a pointer unless it can be null.
+        </p>
+        <p>
+            Parameters are either inputs to the function, outputs from the function, or both. Non-optional input parameters should usually be values or <code>const</code> references, while non-optional output and input/output parameters should usually be references (which cannot be null). Generally, use <code>std::optional</code> to represent optional by-value inputs, and use a <code>const</code> pointer when the non-optional form would have used a reference. Use non-<code>const</code> pointers to represent optional outputs and optional input/output parameters.
+        </p>
+        <p>
+            Avoid defining functions that require a <code>const</code> reference parameter to outlive the call, because <code>const</code> reference parameters bind to temporaries. Instead, find a way to eliminate the lifetime requirement (for example, by copying the parameter), or pass it by <code>const</code> pointer and document the lifetime and non-null requirements.
+        </p>
+        <p>
+            When ordering function parameters, put all input-only parameters before any output parameters. In particular, do not add new parameters to the end of the function just because they are new; place new input-only parameters before the output parameters. This is not a hard-and-fast rule. Parameters that are both input and output muddy the waters, and, as always, consistency with related functions may require one to bend the rule. Variadic functions may also require unusual parameter ordering.
+        </p>
+
+        <a id="functions-write-short-functions" />
+        
         
     </div>
 
