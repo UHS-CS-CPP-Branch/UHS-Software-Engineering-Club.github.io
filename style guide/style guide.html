@@ -65,6 +65,9 @@
                 <a href="#functions">Functions</a>
                 <ul>
                     <li><a href="#functions-inputs-and-outputs">Inputs and Outputs</a></li>
+                    <li><a href="#functions-write-short-functions">Write Short Functions</a></li>
+                    <li><a href="#functions-function-overloading">Function Overloading</a></li>
+                    <li><a href="#functions-default-arguments">Default Arguments</a></li>
                 </ul>
             </li>
         </ul>
@@ -1445,7 +1448,91 @@
         </p>
 
         <a id="functions-write-short-functions" />
-        
+        <h3 class="section-header">Write Short Functions</h3>
+        <p>
+            Prefer small and focused functions.
+        </p>
+        <p>
+            We recognize that long functions are sometimes appropriate, so no hard limit is placed on functions length. If a function exceeds about 40 lines, think about whether it can be broken up without harming the structure of the program.
+        </p>
+        <p>
+            Even if one's funciton works perfectly now, someone modifying it in a few months may add new behavior. This could result in bugs that are hard to find. Keeping one's functions short and simple makes it easier for other people to read and modify one's code. Small functions are also easier to test.
+        </p>
+        <p>
+            One could find long and complicated function when working with some code. Do not be intimidated by modifying existing code: if working with such a function proves to be difficult, one finds that errors are hard to debug, or one wants to use a piece of it in several different contexts, consider breaking up the function into smaller and more manageable pieces.
+        </p>
+
+        <a id="functions-function-overloading" />
+        <h3 class="section-header">Function Overloading</h3>
+        <p>
+            Use overloaded functions (including constructors) only if a reader looking at a call site can get a good idea of what is happening without having to first figuer out exactly which overload is being called.
+        </p>
+
+        <h4>Definition:</h4>
+        <p>
+            One may write a function that takes a <code>const std::string &</code> and overload it with another that takes <code>const char *</code>. However, in this case consider <code>std::string_view</code> instead.
+        </p>
+        <pre>
+            <code>
+                class MyClass
+                {
+                public:
+                    void Analyze(const std::string &text);
+                    void Analyze(const char *text, size_t textlen);
+                }
+            </code>
+        </pre>
+
+        <h4>Pros:</h4>
+        <p>
+            Overloading can make code more intuitive by allowing and identically-named function to take different arguments. It may be necessary for templatized code, and it can be convenient for Visitors. 
+        </p>
+        <p>
+            Overloading based on <code>const</code> or ref qualification may make utility code more usable, more efficient, or both. (See <a href="http://abseil.io/tips/148">TotW 148</a> for more.)
+        </p>
+
+        <h4>Cons:</h4>
+        <p>
+            If a function is overloaded by the argument types alone, a reader may have to understand C++'s complex matching rules in order to tell what's going on. Also many people are confused by the semantics or inheritance if a derived class overrides only some of the variants of a function.
+        </p>
+
+        <h4>Decision:</h4>
+        <p>
+            One may overload a function when there are no semantic differences between variants. These overloads may vary in types, qualifiers, or argument count. However, a reader of such a call must not need to know which member of the overload set is chosen, only that <b>something</b> from the set is being called. If one can document all entries in the overload set with a single comment in the header, that is a good sign that it is a well-designed overload set.
+        </p>
+
+        <a id="functions-default-arguments" />
+        <h3 class="section-header">Default Arguments</h3>
+        <p>
+            Default arguments are allowed on non-virtual functions when the default is guaranteed to always have the same value. Follow the same restrictions as for <a href="#functions-function-overloading">function overloading</a>, and prefer overloaded functions if the readability gained with default arguments doesn't outweight the downsides below.
+        </p>
+
+        <h4>Pros:</h4>
+        <p>
+            Often one has a function that uses default values, but occasionally one wants to override the defaults. Default parameters allow an easy way to do this without having to define many functions for the rare exceptions. Compared to overloading the function, default arguments have a cleaner syntax, with less boilerplate and a clearer distinction between <q>required</q> and <q>optional</q> arguments.
+        </p>
+
+        <h4>Cons:</h4>
+        <p>
+            Defaulted arguments are another way to achieve the semantics of overloaded functions, so all the <a href="#functions-function-overloading">reasons not to overload functions</a> apply.
+        </p>
+        <p>
+            The defaults for arguments in a virtual function call are determined by the static type of the target object, and there's no guarantee that all overrides of a given function declare the same defaults.
+        </p>
+        <p>
+            Default parameters are re-evaluated at each call site, which can bloat the generated code. Readers may also expect the default's value to be fixed at the declaration instead of varying at each call. 
+        </p>
+        <p>
+            Function pointers are confusing in the presence of default arguments, since the function signature often doesn't match the call signature. Adding function overloads avoids these problems.
+        </p>
+
+        <h4>Decision:</h4>
+        <p>
+            Default arguments are banned on virtual functions, where they don't work properly, and in cases where the specified default might not evaluate to the same value depending on when it was evaluated. (For example, don't write <code>void f(int n = counter++);</code>.)
+        </p>
+        <p>
+            In some other cases, default arguments can improve the readability of their function declarations enough to overcome the downsides above, so they are allowed. When in doubt, use overloads.
+        </p>
         
     </div>
 
