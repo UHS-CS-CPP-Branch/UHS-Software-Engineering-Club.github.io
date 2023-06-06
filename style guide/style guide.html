@@ -58,7 +58,7 @@
                     <li><a href="#classes-inheritance">Inheritance</a></li>
                     <li><a href="#classes-operator-overloading">Operator Overloading</a></li>
                     <li><a href="#classes-access-control">Access Control</a></li>
-                    <li><a href="#classes-declaration-order">Declaration Order/a></li>
+                    <li><a href="#classes-declaration-order">Declaration Order</a></li>
                 </ul>
             </li>
             <li>
@@ -68,6 +68,12 @@
                     <li><a href="#functions-write-short-functions">Write Short Functions</a></li>
                     <li><a href="#functions-function-overloading">Function Overloading</a></li>
                     <li><a href="#functions-default-arguments">Default Arguments</a></li>
+                </ul>
+            </li>
+            <li>
+                <a href="#programming-paradigms">Programming Paradigms</a>
+                <ul>
+                    <li><a href="#programming-paradigms-c++-style-functional-programming">C++ Style Functional Programming</a></li>
                 </ul>
             </li>
         </ul>
@@ -1532,6 +1538,104 @@
         </p>
         <p>
             In some other cases, default arguments can improve the readability of their function declarations enough to overcome the downsides above, so they are allowed. When in doubt, use overloads.
+        </p>
+        
+        <a id="programming-paradigms" />
+        <h2 class="section-header">Programming Paradigms &lsqb;Experimental Section: All debates are welcome&rsqb;</h2>
+        <p>
+            Programming paradigms are a way to classify programming languages based on their features. Languages can be classified into multiple paradigms.
+        </p>
+        <p>
+            For instance, C++ is a multi-paradigm language. One can freely choose procedural programming, object-oriented programming, functional programming, etc., based on the case and situation.
+        </p>
+
+        <a id="programming-paradigms-c++-style-functional-programming" />
+        <h3 class="section-header">C++ Style Functional Programming</h3>
+        <p>
+            The C++ programming language offers a variety of features that make it easier to write functional programs. First is the ability to define and use functions. This means that instead of writing code directly in the main program, one can create functions that can be called from other parts of the code. There are more tools which are as follows:
+        </p>
+
+        <h4>Lambda Expressions:</h4>
+        <p>
+            Lambda expressions are a powerful feature of C++ that allows for the creation of anonymous functions. These functions can take arguments and return a value and can be used to create higher-order functions such as map and filter algorithms. Lambda expressions are also useful for writing callbacks and for creating funciton objects.
+        </p>
+
+        <h4>Standard Template Library</h4>
+        <p>
+            For functional programming in C++, the <abbr title="Standard Template Library">STL</abbr> offers a library of general-purpose algorithms and data structures. The STL includes functions such as map and filter, which are useful for applying a function to a collection of elements. Additionally, the STL includes algorithms such as sort, which can be used to sort a collection of elements.
+        </p>
+
+        <h4>Function Objects</h4>
+        <p>
+            Function objects are instances of classes that contain a single function. These objects can be used to encapsulate a function, making it easier to pass around and use. Function objects are also useful for creating higher-order functions, such as map and filter algorithms.
+        </p>
+
+        <h4>Inputs</h4>
+        <p>
+            In C++, there are three kinds of arguments one may pass in to a function. Copy, lvalue reference, and rvalue reference.
+        </p>
+
+        <h5>Copy</h5>
+        <p>
+            Example:
+            <pre>
+                <code>
+                    void TakesACopy(T copy);
+
+                    T value {};
+                    TakesACopy(value);
+                </code>
+            </pre>
+        </p>
+        <p>
+            In the exmaple above, <code>value</code> and <code>copy</code> are two identical copies. All modifications to <code>copy</code> will not affect <code>value</code>, but the memory consumption will double.
+        </p>
+        <p>
+            Please do note that the compiler will apply copy elision to avoid unnecessary copies when appropriate.
+        </p>
+
+        <h5>Lvalue Reference</h5>
+        <p>
+            Example:
+            <pre>
+                <code>
+                    void TakesAnLvalueReference(T &lvalueReference);
+
+                    T value {};
+                    TakesAnLvalueReference(value);
+                </code>
+            </pre>
+        </p>
+        <p>
+            In the example above, <code>value</code> and <code>lvalueReference</code> are the same variable. All modifications to <code>lvalueReference</code> will apply to <code>value</code> as well, or vice versa. This kind of passing is memory-efficient.
+        </p>
+        <p>
+            Please do note that functional programming is a paradigm that emphasizes the use of pure functions, which are functions that do not cause or depend on any side effects. If <code>lvalueReference</code> is modified inside the function body shown above, it produces a side effect, breaking the paradigm.
+        </p>
+
+        <h5>Rvalue Reference</h5>
+        <p>
+            Example:
+            <pre>
+                <code>
+                    void TakesAnRvalueReference(T &&rvalueReference);
+
+                    T value {};
+                    TakesAnRvalueReference(std::move(value));
+                    // Or TakesAnRvalueReference({});
+                </code>
+            </pre>
+        </p>
+        <p>
+            In the example above, an rvalue is expected to be passed into the function, giving the <i>user</i> only two choices: either passing a literal, or invoking <code>std::move</code>.
+        </p>
+        <p>
+            <code>std::move</code> achieves a <a href="#classes-copyable-and-movable-types">move construction</a>, which transfers the ownership of <code>value</code> to <code>rvalueReference</code>, and invalidates <code>value</code> in the meanwhile. This way, the <q>zero-side-effect principle</q> is enforced and no copy is made, resulting in no additional memory consumption, better code readability, and much more other benefits.
+        </p>
+        
+        <h4>Constraints</h5>
+        <p>
+            While functions being the first-class citizens in functional programming, all <a href="#functions">restrictions to functions</a> are also applied and must be enforced.
         </p>
         
     </div>
