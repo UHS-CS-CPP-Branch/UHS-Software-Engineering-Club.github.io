@@ -68,6 +68,7 @@
                     <li><a href="#functions-write-short-functions">Write Short Functions</a></li>
                     <li><a href="#functions-function-overloading">Function Overloading</a></li>
                     <li><a href="#functions-default-arguments">Default Arguments</a></li>
+                    <li><a href="#functions-trailing-return-type-syntax">Trailing Return Type Syntax</a></li>
                 </ul>
             </li>
             <li>
@@ -578,9 +579,9 @@
             <li>To place generated protocol message code in a namespace, use the <code>package</code> specifier in the <code>.proto</code> file. See <a href="https://developers.google.com/protocol-buffers/docs/reference/cpp-generated#package">Protocol Buffer Packages</a> for details.</li>
             <li>Do not declare anything in namespace <code>std</code>, including forward declarations of standard library classes. Declaring entities in namespace <code>std</code> is undefined behavior, i.e., not portable. To declare entities from the standard library, include the appropriate header file.</li>
             <li>
-                You may not use a <i>using-directive</i> to make all names from a namespace available.
+                One may not use a <i>using-directive</i> to make all names from a namespace available.
                 <pre>
-                    <code style="background-color: red;">
+                    <code style="color: red;">
                         // Forbidden -- This pollutes the namespace.
                         using namespace foo;
                     </code>
@@ -622,7 +623,7 @@
             <li>
                 Use namespaces with <q>internal</q> in the name to document parts of an API that should not be mentioned by users of the API.
                 <pre>
-                    <code style="background-color: red;">
+                    <code style="color: red;">
                         // We shouldn't use this internal name in non-absl code.
                         using ::absl::container_internal::ImplementationDetail;
                     </code>
@@ -691,7 +692,7 @@
         <p>
             C++ allows one to declare variables anywhere in a function. We encourage one to declare them in a scope as local as possible, and as close to the first use as possible. This makes it easier for the reader to find the declaration and see what type the variable is and what it was initialized to. In particular, initialization should be used instead of declaration and assignment, e.g.,:
             <pre>
-                <code style="background-color: red;">
+                <code style="color: red;">
                     int i;
                     i = f(); // Bad -- initialization separate from declaration.
                 </code>
@@ -703,7 +704,7 @@
             </pre>
 
             <pre>
-                <code style="background-color: red;">
+                <code style="color: red;">
                     int jobs = NumJobs();
                     // More code...
                     f(jobs); // Bad -- declaration separate from use.
@@ -717,7 +718,7 @@
             </pre>
 
             <pre>
-                <code style="background-color: red;">
+                <code style="color: red;">
                     std::vector<int> v;
                     v.push_back(1); // Prefer initializing using brace initialization.
                     v.push_back(2);
@@ -740,7 +741,7 @@
         <p>
             There is one caveat: if the variable is an object, its constructor is invoked every time it enters scope and is created, and its destructor is invoked every time it goes out of scope.
             <pre>
-                <code style="background-color: red;">
+                <code style="color: red;">
                     // Inefficient implementation:
                     for (int i = 0; i < 1,000,000; ++i)
                     {
@@ -813,7 +814,7 @@
             </code>
         </pre>
         <pre>
-            <code style="background-color: red;">
+            <code style="color: red;">
                 // Bad: non-trivial destructor.
                 const std::string kFoo = "foo";
 
@@ -867,7 +868,7 @@
         <p>
             By constrast, the following initializations are problematic:
             <pre>
-                <code style="background-color: red;">
+                <code style="color: red;">
                     // Some declarations used below.
                     time_t time(time_t *);      // Not constexpr!
                     int f();                    // Not constexpr!
@@ -1133,7 +1134,7 @@
                 </code>
             </pre>
             <pre>
-                <code style="background-color: red;">
+                <code style="color: red;">
                     Func({42, 3.14});   // Error
                 </code>
             </pre>
@@ -1538,6 +1539,67 @@
         </p>
         <p>
             In some other cases, default arguments can improve the readability of their function declarations enough to overcome the downsides above, so they are allowed. When in doubt, use overloads.
+        </p>
+
+        <a id="functions-trailing-return-type-syntax" />
+        <h3 class="section-header">Trailing Return Type Syntax</h3>
+        <p>
+            Use trailing return types only where using the ordinary syntax (leading return types) is impractical or much less readable.
+        </p>
+
+        <h4>Definition:</h4>
+        <p>
+            C++ allows two different forms of function declarations. In the older form, the return type appears before the function name. For example:
+            <pre>
+                <code>
+                    int foo(int x);
+                </code>
+            </pre>
+        </p>
+        <p>
+            The newer form uses the <code>auto</code> keyword before the function name and a trailing return type after the argument list. For example, the declaration above could equivalently be written:
+            <pre>
+                <code>
+                    auto foo(int x) -> int;
+                </code>
+            </pre>
+        </p>
+        <p>
+            The trailing return type is in the function's scope. This doesn't make a difference for a simple case like <code>int</code> but it matters for more complicated cases, like types declared in class scope or types written in terms of the function parameters.
+        </p>
+
+        <h4>Pros:</h4>
+        <p>
+            Trailing return types are the only way to explicitly specify the return type of a <a href="#other-c++-features-lambda-expressions">lambda expression</a>. In some cases the compiler is able to deduce a lambda's return type, but not in all cases. Even when the compiler can deduce it automatically, sometimes specifying it explicitly would be clearer for readers.
+        </p>
+        <p>
+            Sometimes it's easier and more readable to specify a return type after the function's parameter list has already appeared. This is particularly true when the return type depends on template parameters. For example:
+            <pre>
+                <code>
+                    template &lt;typename T, typename U&gt;
+                    auto add(T t, U u) -> decltype(t + u);
+                </code>
+            </pre>
+            versus
+            <pre>
+                <code>
+                    template &lt;typename T, typename U&gt;
+                    decltype(declval&lt;T &&gt;() + declval&lt;U &&gt;()) add(T t, U u);
+                </code>
+            </pre>
+        </p>
+
+        <h4>Cons:</h4>
+        <p>
+            Trailing return type syntax is relatively new and it has no analogue in C++-like languages such as C and Java, so some readers may find it unfamiliar.
+        </p>
+        <p>
+            Existing code bases have an enormous number of function declarations that aren't going to get changed to use the new syntax, so the realistic choices are using the old syntax only or using a mixture of the two. Using a single version is better for uniformity of style.
+        </p>
+
+        <h4>Decision:</h4>
+        <p>
+            In most cases, continue to use the older style of function declaration where the return type goes before the function name. Use the new trailing-return-type form only in cases where it's required (such as lambdas) or where, by putting the type after the function's parameter list, it allows you to write the type in a much more readable way. The latter case should be rare; it's mostly an issue in fairly complicated template code, which is <a href="other-c++-features-template-metaprogramming">discouraged in most cases</a>.
         </p>
         
         <a id="programming-paradigms" />
