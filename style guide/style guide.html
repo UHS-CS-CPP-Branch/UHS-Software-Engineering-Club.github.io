@@ -72,6 +72,18 @@
                 </ul>
             </li>
             <li>
+                <a href="#utilizing-google-magic">Utilizing Google Magic</a>
+                <ul>
+                    <li><a href="#utilizing-google-magic-ownership-and-smart-pointers">Ownership and Smart Pointers</a></li>
+                </ul>
+            </li>
+            <li>
+                <a href="#other-c++-features">Other C++ Features</a>
+                <ul>
+                    <li><a href="#other-c++-features-rvalue-references">Rvalue References</a></li>
+                </ul>
+            </li>
+            <li>
                 <a href="#programming-paradigms">Programming Paradigms</a>
                 <ul>
                     <li><a href="#programming-paradigms-c++-style-functional-programming">C++ Style Functional Programming</a></li>
@@ -1600,6 +1612,107 @@
         <h4>Decision:</h4>
         <p>
             In most cases, continue to use the older style of function declaration where the return type goes before the function name. Use the new trailing-return-type form only in cases where it's required (such as lambdas) or where, by putting the type after the function's parameter list, it allows you to write the type in a much more readable way. The latter case should be rare; it's mostly an issue in fairly complicated template code, which is <a href="other-c++-features-template-metaprogramming">discouraged in most cases</a>.
+        </p>
+        
+        <a id="utilizing-google-magic" />
+        <h2 class="section-header">Utilizing Google Magic</h2>
+
+        <a id="utilizing-google-magic-ownership-and-smart-pointers" />
+        <h3 class="section-header">Ownership and Smart Pointers</h3>
+        <p>
+            Prefer to have single, fixed owners for dynamically allocated objects. Prefer to transfer ownership with smart pointers.
+        </p>
+
+        <h4>Definition:</h4>
+        <p>
+            <q>Ownership</q> is a bookkeeping technique for managing dynamically allocated memory (and other resources). The owner of a dynamically allocated object is an object or function that is responsible for ensuring that it is deleted when no longer needed. Ownership can sometimes be shared, in which case the last owner is typically responsible for deleting it. Even when ownership is not shared, it can be transferred from one piece of code to another.
+        </p>
+        <p>
+            <q>Smart</q> pointers are classes that act like pointers, e.g., by overloading the <code>*</code> and <code>-&gt;</code> operators. Some smart pointer types can be used to automate ownership bookkeeping, to ensure these responsibilities are met, <code><a href="http://en.cppreference.com/w/cpp/memory/unique_ptr">std::unique_ptr</a></code> is a smart pointer type which expresses exclusive ownership of a dynamically allocated object; the object is deleted when the <code>std::unique_ptr</code> goes out of scope. It cannot be copied, but can be <i>moved</i> to represent ownership transfer. <code><a href="http://en.cppreference.com/w/cpp/memory/shared_ptr">std::shared_ptr</a></code> is a smart pointer type that expresses shared ownership of a dynamically allocated object. <code>std::shared_ptr</code>s can't be copied; ownership of the object is shared among all copies, and the object is deleted when the last <code>std::shared_ptr</code> is destroyed.
+        </p>
+
+        <h4>Pros:</h4>
+        <ul>
+            <li>
+                It's virtually impossible to manage dynamically allocated memory without some sort of ownership logic.
+            </li>
+            <li>
+                Transferring can be simpler than <q>borrowing</q> a pointer or reference, because it reduces the need to coordinate the lifetime of the object between the two users.
+            </li>
+            <li>
+                Smart pointers can improve readability by making ownership logic explicit, self-documenting, and unambiguous.
+            </li>
+            <li>
+                Smart pointers can eliminate manual ownership bookkeeping, simplifying the code and ruling out large classes or errors.
+            </li>
+            <li>
+                For <code>const</code> objects, shared ownership can be a simple and efficient alternative to deep copying.
+            </li>
+        </ul>
+
+        <h4>Cons:</h4>
+        <ul>
+            <li>
+                Ownership must be represented and transferred via pointers (whether smart or plain). Pointer semantics are more complicated than value semantics, especially in APIs: one have to worry not just about ownership, but also aliasing, lifetime, and mutability, among other issues.
+            </li>
+            <li>
+                The performance costs of value semantics are often overestimated, so the performance benefits of ownership transfer might not justify the readability and complexity costs.
+            </li>
+            <li>
+                APIs that transfer ownership force their clients into a single memory management model.
+            </li>
+            <li>
+                Code using smart pointers is less explicit about where the resource releases take place.
+            </li>
+            <li>
+                <code>std::unique_ptr</code> expresses ownership transfer using move semantics, which are relatively new and may confuse some programmers.
+            </li>
+            <li>
+                Shared ownership can be tempting alternative to carefule ownership design, obfuscating the design of a system.
+            </li>
+            <li>
+                Shared ownership requires explicit bookkeeping at run-time, which can be costly.
+            </li>
+            <li>
+                In some cases (e.g., cyclic references), objects with shared ownership may never be deleted.
+            </li>
+            <li>
+                Smart pointers are not perfect substitutes for plain pointers.
+            </li>
+        </ul>
+
+        <h4>Decision:</h4>
+        <p>
+            If dynamic allocation is necessary, prefer to keep ownership with the code that allocated it. If other code needs access to the object, consider passing it a copy, or passing a pointer or reference without transferring ownership. Prefer to use <code>std::unique_ptr</code> to make ownership transfer explicit. For example:
+            <pre>
+                <code>
+                    std::unique_ptr<Foo> FooFactory();
+                    void FooConsumer(std::unique_ptr<Foo> ptr);
+                </code>
+            </pre>
+        </p>
+        <p>
+            Do not design one's code to use shared ownership without a very good reason. One such reason is to avoid expensive copy operations, but one should only do this if the performance benefits are significant, and the underlying object is immutable (i.e., <code>std::shared_ptr&lt;const Foo&gt;</code>). If one does use shared ownership, prefer to use <code>std::shared_ptr</code>.
+        </p>
+        <p>
+            Never use <code>std::auto_ptr</code>. Instead, use <code>std::unique_ptr</code>.
+        </p>
+
+        <a id="other-c++-features" />
+        <h2 class="section-header">Other C++ Features</h2>
+
+        <a id="other-c++-features-rvalue-references" />
+        <h3 class="section-header">Rvalue References &lsqb;Incomplete, Contains experimental conventions: Rvalue references&rsqb;</h3>
+        <p>
+            Use rvalue references only in certain special cases listed below.
+        </p>
+
+        <h4>Definition:</h4>
+        <p>
+            Rvalue references are a type of reference that can only bind to temporary objects. The syntax is similar to traditional reference syntax. For example, <code>void f(std::string &&s);</code> declares a function whose argument is an rvalue reference to a <code>std::string</code>.
+        </p>
+        <p>
+            When the token <code>&&</code> is applied to un unqualified template argument in a function parameter, special template argument deduction rules apply. Such a reference is called a forwarding reference.
         </p>
         
         <a id="programming-paradigms" />
