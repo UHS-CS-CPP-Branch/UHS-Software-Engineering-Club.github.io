@@ -81,6 +81,8 @@
                 <a href="#other-c++-features">Other C++ Features</a>
                 <ul>
                     <li><a href="#other-c++-features-rvalue-references">Rvalue References</a></li>
+                    <li><a href="#other-c++-features-friends">Friends</a></li>
+                    <li><a href="#other-c++-features-exceptions">Exceptions</a></li>
                 </ul>
             </li>
             <li>
@@ -1711,9 +1713,109 @@
         <p>
             Rvalue references are a type of reference that can only bind to temporary objects. The syntax is similar to traditional reference syntax. For example, <code>void f(std::string &&s);</code> declares a function whose argument is an rvalue reference to a <code>std::string</code>.
         </p>
+
+        <a id="other-c++-features-rvalue-references-forwarding-references" />
         <p>
             When the token <code>&&</code> is applied to un unqualified template argument in a function parameter, special template argument deduction rules apply. Such a reference is called a forwarding reference.
         </p>
+
+        <h4>Pros:</h4>
+        <ul>
+            <li>
+                Defining a move constructor (a constructor taking an rvalue reference to the class type) makes it possible to move a value instead of copying it. If <code>v1</code> is a <code>std::vector&lt;std::string&gt;</code>, for example, then <code>auto v2(std::move(v1))</code> will probably just result in some simple pointer manipulation instead of copying a large amount of data. In many cases this can result in a majoy performance improvement.
+            </li>
+            <li>
+                Rvalue references make it possible to implement types that are movable but not copyable, which can be useful for types that have no sensible definition of copying but where one might still want to pass them as function arguments, put them in containers, etc.
+            </li>
+            <li>
+                <code>std::move</code> is necessary to make effective use of some standard-library types, such as <code>std::unique_ptr</code>.
+            </li>
+            <li>
+                <a href="#other-c++-features-rvalue-references-forwarding-references">Forwarding references</a> which use the rvalue reference token, make it possible to write a genetic funciton wrapper that forwards its arguments to another function, and works whether or not its arguments are temporary objects and/or const. This is called <q>perfect forwarding</q>.
+            </li>
+        </ul>
+
+        <h4>Cons:</h4>
+        <ul>
+            <li>
+                Rvalue references are not yet widely understood. Rules like reference collapsing and the special deduction rule for forwarding references are somewhat obscure.
+            </li>
+            <li>
+                Rvalue references are often misused. Using rvalue references is a counter-intuitive in signatures where the argument is expected to have a valid specified state after the function call, or where no move operation is performed.
+            </li>
+        </ul>
+
+        <h4>Decision:</h4>
+        <p>
+            Do not use rvalue references (or apply the <code>&&</code> qualifier to methods), except as follows:
+            <ul>
+                <li>
+                    One may use them to define move constructors and move assignment operators (as described in <a href="#classes-copyable-and-movable-types">Copyable and Movable Types</a>).
+                </li>
+                <li>
+                    One may use them to define <code>&&</code>-qualified methods that logically "consume" the value (as described under <a href="#programming-paradigms-c++-style-functional-programming">C++ Style Functional Programming</a>).
+                </li>
+                <li>
+                    One may use forwarding references in conjunction with <code>std::forward</code>, to support perfect forwarding.
+                </li>
+                <li>
+                    One may use them to define pairs of overloads, such as one taking <code>Foo &&</code> and the other taking <code>const Foo &</code>. Usually the preferred solution is just to pass by value, but an overloaded pair of functions sometimes yields better performance and is sometimes necessary in generic code that needs to support a wide variety of types. As always: if one is writing more complicated code for the sake of performance, make sure one has evidence that it actually helps.
+                </li>
+            </ul>
+        </p>
+
+        <a id="other-c++-features-friends" />
+        <h3 class="section-header">Friends</h3>
+        <p>
+            We allow use of <code>friend</code> classes and functions, within reasons.
+        </p>
+        <p>
+            Friends should usually be defined in the same file so that the reader does not have to look in another file to find uses of the private members of a class. A common use of <code>friend</code> is to have a <code>FooBuilder</code> class be a friend of <code>Foo</code> so that it can construct the inner state of <code>Foo</code> correctly, without exposing this state to the world. In some cases it may be useful to make a unittest class a friend of the class it tests.
+        </p>
+        <p>
+            Friends extend, but do not break, the encapsulation boundary of a class. In some cases this is better than making a member <code>public</code> when one wants to give only one other class access to it. However, most classes should interact with other classes solely through their public members.
+        </p>
+
+        <a id="other-c++-features-exceptions" />
+        <h3 class="section-header">Exceptions</h3>
+        <p>
+            Despite using exceptions may result in hard-to-read and/or hard-to-debug code, sometimes their uses are necessary. E.g., it is hard to signal an error in class constructor/destructors without exceptions.
+        </p>
+        <p>
+            We only allow careful use of exceptions at where they are necessary. If one is confused whether to use it or not, ask others to get more input for one's decision.
+        </p>
+
+        <h4>Pros:</h4>
+        <ul>
+            <li>
+                Exceptions allow higher levels of an application to decide how to handle <q>can't happen</q> failures in deeply nested functions, without the obscuring and error-prone bookkeeping of error codes.
+            </li>
+            <li>
+                Exceptions are used by most other modern languages. Using them in C++ would make it more consistent with Python, Java, and the C++ that others are familiar with.
+            </li>
+            <li>
+                Some third-party C++ libraries use exceptions, and turning them off internally makes it harder to integrate with those libraries.
+            </li>
+            <li>
+                Exceptions are the only way for a constructor to fail. We can simulate this with a factory function or an <code>Init()</code> method, but these require heap allocation or a new <q>invalid</q> state, respectively.
+            </li>
+            <li>
+                Exceptions are really handy in testing frameworks.
+            </li>
+        </ul>
+
+        <h4>Cons:</h4>
+        <ul>
+            <li>
+                When one adds a <code>throw</code> statement to an existing function, one must examine all of its transitive callers. Either they must make at least the basic exception safety guarantee, or they must never catch the exception and be happy with the program terminating as a result. For instance, if <code>f()</code> calls <code>g()</code> calls <code>h()</code>, and <code>h</code> throws an exception that <code>f</code> catches, <code>g</code> has to be careful or it may not clean up properly.
+            </li>
+            <li>
+                More generally, exceptions make the control flow of programs difficult to evaluate by looking at the code: functions may return in places one doesn't expect. This causes maintainability and debugging difficulties. One can minimize this cost via some rules on how and where exceptions can be used, but at the cost of more that a developer needs to know and understand.
+            </li>
+            <li>
+                &lsqb;Incomplete: Contents missing&rsqb; 
+            </li>
+        </ul>
         
         <a id="programming-paradigms" />
         <h2 class="section-header">Programming Paradigms &lsqb;Experimental Section: All debates are welcome&rsqb;</h2>
@@ -1808,7 +1910,12 @@
             <code>std::move</code> achieves a <a href="#classes-copyable-and-movable-types">move construction</a>, which transfers the ownership of <code>value</code> to <code>rvalueReference</code>, and invalidates <code>value</code> in the meanwhile. This way, the <q>zero-side-effect principle</q> is enforced and no copy is made, resulting in no additional memory consumption, better code readability, and much more other benefits.
         </p>
         
-        <h4>Constraints</h5>
+        <h5>Decision:</h5>
+        <p>
+            &lsqb;Incomplete: Contents missing&rsqb;
+        </p>
+        
+        <h4>Constraints</h4>
         <p>
             While functions being the first-class citizens in functional programming, all <a href="#functions">restrictions to functions</a> are also applied and must be enforced.
         </p>
