@@ -2,6 +2,10 @@
 <html lang="en">
 
 <head>
+    <!-- seo related -->
+    <meta name="description" content="An internal, but not private, C++ style guide written and used at Unionville High School Software Engineering Club." />
+    
+    <!-- rendering related -->
     <meta charset="UTF-8">
     <meta http-equiv="X-UA-Compatible" content="IE=edge">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -83,6 +87,9 @@
                     <li><a href="#other-c++-features-rvalue-references">Rvalue References</a></li>
                     <li><a href="#other-c++-features-friends">Friends</a></li>
                     <li><a href="#other-c++-features-exceptions">Exceptions</a></li>
+                    <li><a href="#other-c++-features-noexcept"><code>noexcept</code></a></li>
+                    <li><a href="#other-c++-features-run-time-type-information">Run-Time Type Information</a></li>
+                    <li><a href="#other-c++-features-casting">Casting</a></li>
                 </ul>
             </li>
             <li>
@@ -1813,9 +1820,150 @@
                 More generally, exceptions make the control flow of programs difficult to evaluate by looking at the code: functions may return in places one doesn't expect. This causes maintainability and debugging difficulties. One can minimize this cost via some rules on how and where exceptions can be used, but at the cost of more that a developer needs to know and understand.
             </li>
             <li>
-                &lsqb;Incomplete: Contents missing&rsqb; 
+                Exception safety requires both <abbr title="Resource Acquisition Is Initialization">RAII</abbr> and different coding practices. Lots of supporting machinery is needed to make writing correct exception-safe code easy. Further, to avoid requiring readers to understand the entire call graph, exception-safe code must isolate logic that writes to persistent state into a <q>commit</q> phase. This will have both benefits and costs (perhaps where one is forced to obfuscate code to isolate the commit). Abusing exceptions would force us to always pay those costs even when they're not worth it.
+            </li>
+            <li>
+                Using exceptions adds data to each binary produced, increasing compile time (probably slightly) and possibly increasing address space pressure.
+            </li>
+            <li>
+                The availability of exceptions may encourage develoeprs to throw them when they are not appropriate or recover from them when it's not safe to do so. For example, invalid user input should not cause exceptions to be thrown. We would need to make the style guide even longer to document these restrictions!
             </li>
         </ul>
+
+        <h4>Decision:</h4>
+        <p>
+            One may only consider introducing exceptions in one/or more of the following cases:
+            <ul>
+                <li>
+                    One needs to signal an error in constructors and/or destructors.
+                </li>
+                <li>
+                    &lsqb;More cases will be appended as requests&rsqb;
+                </li>
+            </ul>
+        </p>
+
+        <a id="other-c++-features-noexcept" />
+        <h3 class="section-header"><code>noexcept</code></h3>
+        <p>
+            Specify <code>noexcept</code> when it is useful and correct.
+        </p>
+
+        <h4>Definition:</h4>
+        <p>
+            The <code>noexcept</code> specifier is used to specify whether a function will throw exceptions or not. If an exception escapes from a function marked <code>noexcept</code>, the program crashes via <code>std::terminate</code>.
+        </p>
+        <p>
+            The <code>noexcept</code> operator performs a compile-time check that returns true if an expression is declared to not throw any exceptions.
+        </p>
+
+        <h4>Pros:</h4>
+        <ul>
+            <li>
+                Specifying move constructors as <code>noexcept</code> improves performance in some caes, e.g., <code>std::vector&lt;T&gt;::resize()</code> moves rather than copies the objects if <code>T</code>'s move constructor is <code>noexcept</code>.
+            </li>
+            <li>
+                Specifying <code>noexcept</code> on a function can trigger compiler optimizations in environments where exceptions are enabled, e.g., compiler does not have to generate extra code for stack-unwinding, if it knows that no exceptions can be thrown due to a <code>noexcept</code> specifier.
+            </li>
+        </ul>
+
+        <h4>Cons:</h4>
+        <ul>
+            <li>
+                It's hard, if not impossible, to undo <code>noexcept</code> because it eliminates a gurantee than callers may be relying on, in ways that are hard to detect.
+            </li>
+        </ul>
+
+        <h4>Decision:</h4>
+        <p>
+            One may use <code>noexcept</code> when it is useful for performance if it accurately reflects the intended semantics of one's function, i.e., that if an exception is somehow thrown from within the function body then it represents a fatal error. One can assume that <code>noexcept</code> on move constructors have a meaningful performance benefit. If one thinks there is significant performance benefit from specifying <code>noexcept</code> on some other function, please disscuss it with others to get more input.
+        </p>
+        <p>
+            Prefer unconditional <code>noexcept</code> if exceptions are completely disabled (i.e., most Google C++ environments). Otherwise, use conditional <code>noexcept</code> specifiers with simple conditions, in ways that evaluate false only in the few cases where the function could potentially throw. The tests might include type traits check on whether the involved operation might throw (e.g., <code>std::is_nothrow_move_constructible</code> for move-constructing objects), or on whether allocation can throw (e.g., <code>absl::default_allocator_is_nothrow</code> for standard default allocation). Note in many cases the only possible cause for an exception is allocation failure (we believe move constructors should not throw exceptions due to allocation failure), and there are many applications where it's appropriate to treat memory exhaustions as a fatal error rather than an exceptional condition that one's program should attempt to recover from. Even for other potential failures one should prioritize interface simplicity over supporting all possible exception throwing scenarios: instead of writing a complicated <code>noexcept</code> clause that depends on whether a hash function can throw, for example, simply document that one's component doesn't support hash functions throwing and make it unconditionally <code>noexcept</code>.
+        </p>
+
+        <a id="other-c++-features-run-time-type-information" />
+        <h3 class="section-header">Run-Time Type Information (RTTI)</h3>
+        <p>
+            Avoid using runt-time type information (RTTI).
+        </p>
+
+        <h4>Definition:</h4>
+        <p>
+            RTTI allows a programmer to query the C++ class of an object at run-time. This is done by use of <code>typeid</code> or <code>dynamic_cast</code>.
+        </p>
+
+        <h4>Pros:</h4>
+        <p>
+            The standard alternatives to RTTI (described below) require modification or redesign of the class hierarchy in question. Sometimes such modifications are infeasible or undesireable, particularly in widely-used or mature code.
+        </p>
+        <p>
+            RTTI can be useful in some unit tests. For example, it is useful in tests of factory classes where the test has to verify that a newly created object has the expected dynamic type. It is also useful in managing the relationship between objects and their mocks.
+        </p>
+        <p>
+            RTTI is useful when considering multiple abstract objects. Consider:
+            <pre>
+                <code>
+                    bool Base::Equal(Base *other) = 0;
+                    bool Derived::Equal(Base *other)
+                    {
+                        Derived *that = dynamic_cast<Derived *>(other);
+                        if (!that)
+                            return false;
+                        ...
+                    }
+                </code>
+            </pre>
+        </p>
+
+        <h4>Cons:</h4>
+        <p>
+            Querying the type of an object at run-time frequently means a design problem. Needing to know the type of an object at runtime is often an indication that the design of one's class hierarchy is flawed.
+        </p>
+        <p>
+            Undisciplined use of RTTI makes code hard to maintain. It can lead to type-based decision trees or switch statements scattered throughout the code, all of which must be examined when making further changes.
+        </p>
+
+        <h4>Decision:</h4>
+        <p>
+            RTTI has legitimate uses but is prone to abuse, so one must be careful when using it. One may use it freely in unittests, but avoid it when possible in other code. In particular, think twice before using RTTI in new code. If one finds themselves needing to writing code that behaves differently based on the class of an object, consider one of the following alternatives to querying the type:
+            <ul>
+                <li>
+                    Virtual methods are the preferred way of executing different code paths depending on a specific subclass type. This puts the work within the object itself.
+                </li>
+                <li>
+                    If the work belongs outside the object and instead in some processing code, consider a double-dispatch solution, such as the Visitor design pattern. This allows a facility outside the object itself to determine the type of class using the built-in type system.
+                </li>
+            </ul>
+        </p>
+        <p>
+            When the logic of a program guarantees that a given instance of a base class is in fact an instance of a particular derived class, then a <code>dynamic_cast</code> may be used freely on the object. Usually one can use a <code>static_cast</code> as an alternative in such situations.
+        </p>
+        <p>
+            Decision trees based on type are a strong indication that one's code is on the wrong track.
+            <pre>
+                <code style="color: red">
+                    if (typeid(*data) == typeid(D1))
+                    { ... }
+                    else if (typeid(*data) == typeid(D2))
+                    { ... }
+                    else if (typeid(*data) == typeid(D3))
+                    { ... }
+                </code>
+            </pre>
+        </p>
+        <p>
+            Code such as this usually breaks when additional subclasses are added to the class hierarchy. Moreover, when properties of a subclass change, it is difficult to find and modify all the affected code segments.
+        </p>
+        <p>
+            Do not hand-implement an RTTI-like workaround. The arguments against RTTI apply just as much to workarounds like class hierarchies with type tags. Moreover, workarounds disguise one's true intent.
+        </p>
+
+        <a id="other-c++-features-casting" />
+        <h3 class="section-header">Casting</h3>
+        <p>
+
+        </p>
         
         <a id="programming-paradigms" />
         <h2 class="section-header">Programming Paradigms &lsqb;Experimental Section: All debates are welcome&rsqb;</h2>
