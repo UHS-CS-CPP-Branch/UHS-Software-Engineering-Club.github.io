@@ -90,6 +90,8 @@
                     <li><a href="#other-c++-features-noexcept"><code>noexcept</code></a></li>
                     <li><a href="#other-c++-features-run-time-type-information">Run-Time Type Information</a></li>
                     <li><a href="#other-c++-features-casting">Casting</a></li>
+                    <li><a href="#other-c++-features-streams">Streams</a></li>
+                    <li><a href="#other-c++-features-preincrement-and-predecrement">Preincrement and Predecrement</a></li>
                 </ul>
             </li>
             <li>
@@ -1885,7 +1887,7 @@
         <a id="other-c++-features-run-time-type-information" />
         <h3 class="section-header">Run-Time Type Information (RTTI)</h3>
         <p>
-            Avoid using runt-time type information (RTTI).
+            Avoid using run-time type information (RTTI).
         </p>
 
         <h4>Definition:</h4>
@@ -1961,6 +1963,107 @@
 
         <a id="other-c++-features-casting" />
         <h3 class="section-header">Casting</h3>
+        <p>
+            Use C++-style casts like <code>static_cast&lt;float&gt;(double_value)</code>, or brace initialization for conversion of arithmetic types like <code>int64_t y = int64_t {1} &lt;&lt; 42</code>. Do not use cast formats like <code>(int) x</code> unless the cast is to <code>void</code>. You may use cast formats like <code>T(x)</code> only when <code>T</code> is a class type.
+        </p>
+
+        <h4>Definition:</h4>
+        <p>
+            C++ introduced a different cast system from C that distinguishes the types of cast operations.
+        </p>
+
+        <h4>Pros:</h4>
+        <p>
+            The problem with C casts is the ambiguity of the operation; sometimes one is doing a <i>conversion</i> (e.g., <code>(int) 3.5</code>) and sometimes one is doing a cast (e.g.,<code>(int) "hello"</code>). Brace initialization and C++ casts can often help avoid this ambiguity. Additionally, C++ casts are more visible when searching for them.
+        </p>
+
+        <h4>Cons:</h4>
+        <p>
+            The C++-style cast syntax is verbose and cumbersome.
+        </p>
+
+        <h4>Decision:</h4>
+        <p>
+            In general, do not use C-style casts. Instead, use these C++-style casts when explicit type conversion is necessary.
+        </p>
+        <ul>
+            <li>
+                Use brace initialization to convert arithmetic types (e.g., <code>int64_t {x}</code>). This is the safest approach because code will not compile if conversion can result in information loss. The syntax is also concise.
+            </li>
+            <li>
+                Use <code>absl::implicit_cast</code> to safely cast up a type hierarchy, e.g., casting a <code>Foo *</code> to a <code>SuperclassOfFoo *</code> or casting a <code>Foo *</code> to a <code>const Foo *</code>. C++ usually does this automatically but some situations need an explicit up-cast, such as use of the <code>?:</code> operator.
+            </li>
+            <li>
+                Use <code>static_cast</code> as the equivalent of a C-style cast that does value conversion. When one needs to explicitly up-cast a pointer from a class to its superclass, or when one needs to explicitly cast a pointer from a superclass to a subclass. In this last case, one must be sure one's object is actually an instance of the subclass.
+            </li>
+            <li>
+                Use <code>const_cast</code> to remove the <code>const</code> qualifier (see <a href="#other-c++-features-use-of-const">const</a>).
+            </li>
+            <li>
+                Use <code>reinterpret_cast</code> to do unsafe conversions of pointer types to and from integer and other pointer types, including <code>void *</code>. Use this only if one knows what one is doing and one understands the aliasing issues. Also, consider the alternative <code>absl::bit_cast</code>.
+            </li>
+            <li>
+                Use <code>absl::bit_cast</code> to interpret the raw bits of a value using a different type of the same size (a type pun), such as interpreting the bits of a <code>double</code> as <code>int64_t</code>.
+            </li>
+            <p>
+                See the <a href="#other-c++-features-run-time-type-information">RTTI section</a> for guidance on the use of <code>dynamic_cast</code>.
+            </p>
+        </ul>
+
+        <a id="other-c++-features-streams" />
+        <h3 class="section-header">Streams</h3>
+        <p>
+            Use streams where appropriate, and stick to <q>simple</q> usages. Overload <code>&lt;&lt;</code> for streaming only for types representing values, and write only the user-visible value, not any implementation details.
+        </p>
+
+        <h4>Definition:</h4>
+        <p>
+            Streams are the standard I/O abstraction in C++, as exemplified by the standard header <code>&lt;iostream&gt;</code>. They are widely used in Google code, mostly for debug logging and test diagnostics.
+        </p>
+
+        <h4>Pros:</h4>
+        <p>
+            The <code>&lt;&lt;</code> and <code>&gt;&gt;</code> stream operators provide an API for formatted I/O that is easily learned, portable, reusable, and extensible. <code>printf</code>, by contrast, doesn't even support <code>std::string</code>, to say nothing of user-defined types, and is very difficult to use portably. <code>printf</code> also obliges one to choose among the numerous slightly different versions of that function, and navigate the dozens of conversion specifiers.
+        </p>
+        <p>
+            Streams provide first-class support for console I/O via <code>std::cin</code>, <code>std::cout</code>, <code>std::cerr</code>, and <code>std::clog</code>. The C APIs do as well, but are hampered by the need to manually buffer the input.
+        </p>
+
+        <h4>Cons:</h4>
+        <ul>
+            <li>
+                Stream formatting can be configured by mutating the state of the stream. Such mutations are persistent, so the behavior of one's code can be affected by the entire previous history of the stream, unless one goes out of their way to restore it to a known state every time other code might have touched it. User code can not only modify the built-in state, it can add new state variables and behaviors through a registration system.
+            </li>
+            <li>
+                It is difficult to precisely control stream output, due to the above issues, the way code and data are mixed in streaming code, and the use of operator overloading (which may select a different overload than one expected).
+            </li>
+            <li>
+                The practicle of building up output through chains of <code>&lt;&lt;</code> operators interferes with internationalization, because it breaks word order into the code, and streams' support for localization is <a href="http://www.boost.org/doc/libs/1_48_0/libs/locale/doc/html/rationale.html#rationale_why">flawed</a>.
+            </li>
+            <li>
+                The streams API is subtle and complex, so programmers must develop experience with it in order to use it effectively.
+            </li>
+            <li>
+                Resolving the many overloads of <code>&lt;&lt;</code> is extremely costly for the compiler. When used pervasively in a large code base, it can consume as much as 20% of the parsing and semantic analysis time.
+            </li>
+        </ul>
+
+        <h4>Decision:</h4>
+        <p>
+            Use streams only when they are the best tool for the job. This is typically the case when the I/O is ad-hoc, human-readable, and targeted at other developers rather than end-users. Be consistent with the code around one, and with the codebase as a whole; if there's an established tool for one's problem, use that tool instead. In particular, logging libraries are usually a better choice than <code>std::cerr</code> or <code>std::clog</code> for diagnostic output, and the libraries in <code>absl/strings</code> or the equivalent are usually a better chioce than <code>std::stringstream</code>.
+        </p>
+        <p>
+            Avoid using streams for I/O that faces external users or handles untrusted data. Instead, find and use appropriate templating libraries to handle issues like internationalization, localization, and security hardening.
+        </p>
+        <p>
+            If one does use streams, avoid the stateful parts of the streams API (other than error state), such as <code>imbue()</code>, <code>xalloc()</code>, and <code>register_callback()</code>. Use explicit formatting functions (such as <code>absl::StreamFormat()</code>) rather than stream manipulators or formatting flags to control formatting details such as number base, precision, or padding.
+        </p>
+        <p>
+            Overload <code>&lt;&lt;</code> as a streaming operator for one's type only if one's type represents a value, and <code>&lt;&lt;</code> writes out a human-readable string representation of that value. Avoid exposing implementation details in the output of <code>&lt;&lt;</code>; if one needs to print object internals for debugging, use named functions instead (a method named <code>DebugString()</code> is the most common convention).
+        </p>
+
+        <a id="other-c++-features-preincrement-and-predecrement" />
+        <h3 class="section-header">Preincrement and Predecrement</h3>
         <p>
 
         </p>
