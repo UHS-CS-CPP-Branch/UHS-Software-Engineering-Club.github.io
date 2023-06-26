@@ -95,6 +95,8 @@
                     Predecrement</a></li>
                     <li><a href="#other-c++-features-use-of-const">Use of <code>const</code></a></li>
                     <li><a href="#other-c++-features-use-of-constexpr">Use of <code>constexpr</code></a></li>
+                    <li><a href="#other-c++-features-integer-types">Integer Types</a></li>
+                    <li><a href="#other-c++-features-64-bit-portability">64-bit Portability</a></li>
                 </ul>
             </li>
             <li>
@@ -2177,6 +2179,116 @@
 
         <a id="other-c++-features-use-of-constexpr" />
         <h3 class="section-header">Use of <code>constexpr</code></h3>
+        <p>
+            Use <code>constexpr</code> to define true constants or to ensure constant initialization.
+        </p>
+
+        <h4>Definition:</h4>
+        <p>
+            Some variables can be declared <code>constexpr</code> to indicate the variables are true constants, i.e.,
+            fixed at compilation/link time. Some functions and constructors can be declared <code>constexpr</code> which
+            enables them to be used in defining a <code>constexpr</code> variable.
+        </p>
+
+        <h4>Pros:</h4>
+        <p>
+            Use of <code>constexpr</code> enables definition of constants with floating-point expressions rather than
+            just literals; definition of constants of user-defined types; and definition of constants with function calls.
+        </p>
+
+        <h4>Cons:</h4>
+        <p>
+            Prematurely marking something as <code>constexpr</code> may cause migration problems if later on it has to
+            be downgraded. Current restrictions on what is allowed in <code>constexpr</code> functions and
+            constructors may invite obscure workarounds in these definitions. 
+        </p>
+
+        <h4>Decision:</h4>
+        <p>
+            <code>constexpr</code> definitions enable a more robust specification of the constant parts of an interface.
+            Use <code>constexpr</code> to specify true constants and the functions that support their definitions. Avoid
+            complexfying function definitions to enable their use with <code>constexpr</code>. Do not use
+            <code>constexpr</code> to force inlining.
+        </p>
+
+        <a id="other-c++-features-integer-types" />
+        <h3 class="section-header">Integer Types</h3>
+        <p>
+            Of the built-in C++ integer types, the only one used is <code>int</code>. If a problem needs an integer type
+            of a different size, use an exact-width integer type from <code>&lt;cstdint&gt;</code>, such as
+            <code>int16_t</code>. If one has a value that could ever be greater than or equal to 2^31, use a 64-bit type
+            such as <code>int64_t</code>. Keep in mind that even if one's value won't ever be too large for an
+            <code>int</code>, it may be used in intermediate calculations which may require a larger type. When in
+            doubt, choose a larger type.
+        </p>
+
+        <h4>Definition:</h4>
+        <p>
+            C++ does not specify exact sizes for the integer types like <code>int</code>. Common sizes on contemporary
+            architectures are 16 bits for <code>short</code>, 32 bits for <code>int</code>, 32 or 64 bits for
+            <code>long</code>, and 64 bits for <code>long long</code>, but different platforms make different choices,
+            in particular for <code>long</code>.
+        </p>
+
+        <h4>Pros:</h4>
+        <p>
+            Uniformity of declaration.
+        </p>
+
+        <h4>Cons:</h4>
+        <p>
+            The sizes of integral types in C++ can vary based on compiler and architecture.
+        </p>
+
+        <h4>Decision:</h4>
+        <p>
+            The standard library header <code>&lt;cstdint&gt;</code> defines types like <code>int16_t</code>,
+            <code>uint32_t</code>, <code>int64_t</code>, etc. One should always use those in preference to
+            <code>short</code>, <code>unsigned long long</code>, and the like, when one needs a guarantee on the size of
+            an integer. Of the built-in integer types, only <code>int</code> should be used. When appropriate, one is
+            welcome to use standard type aliases like <code>size_t</code> and <code>ptrdiff_t</code>.
+        </p>
+        <p>
+            We use <code>int</code> very often, for integers we know are not going to be too big, e.g., loop counters.
+            Use plain old <code>int</code> for such things. One should assume that an <code>int</code> is at least 32
+            bits, but don't assume that it has more than 32 bits. If one needs a 64-bit integer type, use
+            <code>int64_t</code> or <code>uint64_t</code>.
+        </p>
+        <p>
+            For integers we know can be <q>big</q>, use <code>int64_t</code>.
+        </p>
+        <p>
+            One should not use the unsigned integer types such as <code>uint32_t</code>, unless there is a valid reason
+            such as representing a bit pattern rather than a number, or one needs defined overflow modulo 2^N. In
+            particular, do not use unsigned types to say a number will never be negative. Instead, use assertions for this.
+        </p>
+        <p>
+            If one's code is a container that returns a size, be sure to use a type that will accommodate any possible
+            usage of one's container. When in doubt, use a larger type rather than a smaller type.
+        </p>
+        <p>
+            Use care when converting integer types. Integer conversions and promotions can cause undefined behavior,
+            leading to security bugs and other problems.
+        </p>
+
+        <h5 style="color: blue;">On Unsigned Integers</h5>
+        <p>
+            Unsigned integers are good for representing bitfields and modular arithmetic. Because of historical
+            accident, the C++ standard also uses unsigned integers to represent the size of containers - many members of
+            the standards body believe this to be a mistake, but it is effectively impossible to fix at this point. The
+            fact that unsigned arithmetic doesn't model the behavior of a simple integer, but is instead defined by the
+            standard to model modular arithmetic (wrapping around on overflow/underflow), means that a significant class
+            of bugs cannot be diagnosed by the compiler. In other cases, the defined behavior impedes optimization.
+        </p>
+        <p>
+            That said, mixing signedness of integer types is responsible for an equally large class of problems. The
+            best advice we can provide: try to use iterators and containers rather than pointers and sizes, try not to
+            mix signedness, and try to avoid unsigned types (except for representing bitfields or modular arithmetic).
+            Do not use an unsigned type merely to assert that a variable is non-negative.
+        </p>
+        
+        <a id="other-c++-features-64-bit-portability" />
+        <h3 class="section-header">64-bit Portability</h3>
         <p>
 
         </p>
