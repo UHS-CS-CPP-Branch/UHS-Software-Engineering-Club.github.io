@@ -98,6 +98,7 @@
                     <li><a href="#other-c++-features-integer-types">Integer Types</a></li>
                     <li><a href="#other-c++-features-64-bit-portability">64-bit Portability</a></li>
                     <li><a href="#other-c++-features-preprocessor-macros">Preprocessor Macros</a></li>
+                    <li><a href="#other-c++-features-0-and-nullptr-null">0 and nullptr/NULL</a></li>
                 </ul>
             </li>
             <li>
@@ -2339,6 +2340,79 @@
 
         <a id="other-c++-features-preprocessor-macros" />
         <h3 class="section-header">Preprocessor Macros</h3>
+        <p>
+            Avoid definint macros, especially in headers, prefer inline functions, enums, and <code>const</code>
+            variables. Name macros with a project-specific prefix. Do not use macros to define pieces of a C++ API.
+        </p>
+        <p>
+            Macros mean that the code one sees is not the same as the code the compiler sees. This can introduce
+            unexpected behavior, especially since macros have global scope.
+        </p>
+        <p>
+            The problems introduced by macros are especially servere when they are used to define pieces of a C++ API,
+            and still more so for public APIs. Every error message from the compiler when developers incorrectly use
+            that interface now must explain how the macros formed the interface. As a consequence, we specifically
+            disallow using macros in this way. For example, avoid patterns like:
+            <pre>
+                <code style="color: red;">
+                    class WOMBAT_TYPE(Foo) 
+                    {
+                        // ...
+                        
+                    public:
+                        EXPAND_PUBLIC_WOMBAT_API(Foo)
+                        
+                        EXPAND_WOMBAT_COMPARISONS(Foo, ==, <) 
+                    };
+                </code>
+            </pre>
+        </p>
+        <p>
+            Luckily, macros are not nearly as necessary in C++ as they are in C. Instead of using a macro to inline
+            performance-critical code, use an inline function. Instead of using a macro to store a constant, use a
+            <code>const</code> variable. Instead of using a macro to <q>abbreviate</q> a long variable name, use a
+            reference. Instead of using a macro to conditionally compile code ... well, don't do that at all (except, of
+            course, for the <code>#define</code> guards to prevent double inclusion of header files). It makes testing
+            much more difficult.
+        </p>
+        <p>
+            Macros can do things these other techniques cannot, and one does see them in the coebase, especially in the
+            lower-level libraries. And some of their special features (like stringifying, concatenation, and so
+            forth) are not available through the language proper. But before using a macro, consider carefully whether
+            there's a non-macro way to achieve the same result. If one needs to use a macro to define an interface,
+            contact others for more input before finalizing the decision.
+        </p>
+        <p>
+            The following usage pattern will avoid many problems with macros; if one uses macros, follow it whenever
+            possible:
+            <ul>
+                <li>
+                    Don't define macros in a <code>.h</code> file.
+                </li>
+                <li>
+                    <code>#define</code> macros right before one uses them, and <code>#undef</code> then right after.
+                </li>
+                <li>
+                    Do not just <code>#undef</code> an existing macro before replacing it with one's own; instead, pick
+                    a name that's likely to be unique.
+                </li>
+                <li>
+                    Try not to use macros that expand to unbalanced C++ constructs, or at least document that behavior well.
+                </li>
+                <li>
+                    Prefer not using <code>##</code> to generate function/class/variable names.
+                </li>
+            </ul>
+        </p>
+        <p>
+            Exporting macros from headers (i.e., defining them in a header without <code>#undef</code>ing them before
+            the end of the header) is extremely strongly discouraged. If one does export a macro from a header, it must
+            have a globally unique name. To achieve this, it must be named with a prefix consisting of one's project's
+            namespace name (but upper case).
+        </p>
+
+        <a id="other-c++-features-0-and-nullptr-null" />
+        <h3 class="section-header">0 and nullptr/NULL</h3>
         <p>
 
         </p>
