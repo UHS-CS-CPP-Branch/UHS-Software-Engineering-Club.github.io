@@ -99,6 +99,8 @@
                     <li><a href="#other-c++-features-64-bit-portability">64-bit Portability</a></li>
                     <li><a href="#other-c++-features-preprocessor-macros">Preprocessor Macros</a></li>
                     <li><a href="#other-c++-features-0-and-nullptr-null">0 and nullptr/NULL</a></li>
+                    <li><a href="#other-c++-features-sizeof"><code>sizeof</code></a></li>
+                    <li><a href="#other-c++-features-type-deduction-including-auto">Type Deduction (including <code>auto</code>)</a></li>
                 </ul>
             </li>
             <li>
@@ -2315,7 +2317,7 @@
                 <code>maxint_t (j)</code>.
             </li>
             <li>
-                Remember that <code>sizeof (void *)</code> != <code>sizeof int</code>. Use <code>intptr_t</code> if one
+                Remember that <code>sizeof(void *)</code> != <code>sizeof(int)</code>. Use <code>intptr_t</code> if one
                 wants a pointer-sized integer.
             </li>
             <li>
@@ -2413,6 +2415,46 @@
 
         <a id="other-c++-features-0-and-nullptr-null" />
         <h3 class="section-header">0 and nullptr/NULL</h3>
+        <p>
+            Use <code>nullptr</code> for pointers, and <code>'\0'</code> for chars (and not the <code>0</code> literal).
+        </p>
+        <p>
+            For pointers (address values), use <code>nullptr</code>, as this provides type safety.
+        </p>
+        <p>
+            Use <code>'\0'</code> for the null character. Using the correct type makes the code more readable.
+        </p>
+
+        <a id="other-c++-features-sizeof" />
+        <h3 class="section-header"><code>sizeof</code></h3>
+        <p>
+            Prefer <code>sizeof(varname)</code> to <code>sizeof(type)</code>.
+        </p>
+        <p>
+            Use <code>sizeof(varname)</code> when one takes the size of a particular variable.
+            <code>sizeof(varname)</code> will update appropriately if someone changes the variable type either now or
+            later. One may use <code>sizeof(type)</code> for code unrelated to any particular variable, such as code
+            that manages an external or internal data format where a variable of an appropriate C++ type is not convenient.
+        </p>
+        <pre>
+            <code>
+                MyStruct data;
+                memset(&data, 0, sizeof(data));
+            </code>
+            <code style="color: red;">
+                memset(&data, 0, sizeof(MyStruct));
+            </code>
+            <code>
+                if (raw_size < sizeof(int)) 
+                {
+                    LOG(ERROR) << "compressed record not big enough for count: " << raw_size;
+                    return false;
+                }
+            </code>
+        </pre>
+
+        <a id="other-c++-features-type-deduction-including-auto" />
+        <h3 class="section-header">Type Deduction (including <code>auto</code>)</h3>
         <p>
 
         </p>
