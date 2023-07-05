@@ -101,7 +101,9 @@
                     <li><a href="#other-c++-features-0-and-nullptr-null">0 and nullptr/NULL</a></li>
                     <li><a href="#other-c++-features-sizeof"><code>sizeof</code></a></li>
                     <li><a href="#other-c++-features-type-deduction-including-auto">Type Deduction (including <code>auto</code>)</a></li>
-                    <li><a href="#other-c++-features-class-template-argument-deduction">Class Template Argument Deduction</a></li>
+                    <li><a href="#other-c++-features-class-template-argument-deduction">Class Template Argument
+                    Deduction</a></li>
+                    <li><a href="#other-c++-features-designated-initializers">Designated Initializers</a></li>
                 </ul>
             </li>
             <li>
@@ -2734,6 +2736,82 @@
 
         <a id="other-c++-features-class-template-argument-deduction" />
         <h3 class="section-header">Class Template Argument Deduction</h3>
+        <p>
+            Use class template argument deduction only with templates that have explicitly opted into supporting it.
+        </p>
+
+        <h4>Definition:</h4>
+        <p>
+            <a href="https://en.cppreference.com/w/cpp/language/class_template_argument_deduction">Class template
+            argument deduction</a> (often abbreviated "CTAD") occurs when a variable is declared with a type that names
+            a template, and the template argument list is not provided (not even empty angle brackets):
+            <pre>
+                <code>
+                    std::array a = {1, 2, 3}; // `a` is a std::array&lt;int, 3&gt;
+                </code>
+            </pre>
+        </p>
+        <p>
+            The compiler deduces the arguments from the initializer using the template's <q>deduction guides</q>, which
+            can be explicit or implicit.
+        </p>
+        <p>
+            Explicit deduction guides look like function declarations with trailing return types, except that there's no
+            leading <code>auto</code>, and the function name is the name of the template. For example, the above example
+            relies on this deduction guide for <code>std::array</code>:
+            <pre>
+                <code>
+                    namespace std
+                    {
+
+                        template &lt;class T, class ...U&gt;
+                        array(T, U...) -> std::array&lt;T, 1 + sizeof ...(U)&gt;;
+
+                    } // namespace std
+                </code>
+            </pre>
+        </p>
+        <p>
+            Constructors in a primary template (as opposed to a template specialization) also implicitly define
+            deduction guides.
+        </p>
+        <p>
+            When one declares a variable that relies on CTAD, the compiler selects a deduction guide using the rules of
+            constructor overload resolution, and that guide's return type becomes the type of the variable.
+        </p>
+
+        <h4>Pros:</h4>
+        <p>
+            CTAD can sometimes allow one to omit boilerplate from their code.
+        </p>
+
+        <h4>Cons:</h4>
+        <p>
+            The implicit deduction guides that are generated from constructors may have undesirable behavior, or be
+            outright incorrect. This is particularly problematic for constructors written before CTAD was introduced in
+            C++17, because the authors of those constructors had no way of knowing about (much less fixing) any problems
+            that their constructors would cause for CTAD. Furthermore, adding explicit deduction guides to fix those
+            problems might break any existing code that relies on the implicit deduciton guides.
+        </p>
+        <p>
+            CTAD also suffers from many of the same drawbacks as <code>auto</code>, because they are both mechanisms for
+            deducing all or part of a variable's type from its initializer. CTAD does give the reader more information
+            than <code>auto</code>, but it also doesn't give the reader an obvious cue that information has been omitted.
+        </p>
+
+        <h4>Decision:</h4>
+        <p>
+            Do not use CTAD with a given template unless the template's maintainers have opted into supporting use of
+            CTAD by providing at least one explicit deduction guide (all templates in the <code>std</code> namespace
+            are also presumed to have opted in). This should be enforced with a compiler warning if available. 
+        </p>
+        <p>
+            Uses of CTAD must also follow the general rules on <a
+            href="#other-c++-features-type-deduction-including-auto">Type Deduction</a>.
+        </p>
+
+        <a id="other-c++-features-designated-initializers" />
+        <h3 class="section-header">Designated Initializers</h3>
         <p>
 
         </p>
