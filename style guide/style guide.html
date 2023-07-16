@@ -104,6 +104,7 @@
                     <li><a href="#other-c++-features-class-template-argument-deduction">Class Template Argument
                     Deduction</a></li>
                     <li><a href="#other-c++-features-designated-initializers">Designated Initializers</a></li>
+                    <li><a href="#other-c++-features-lambda-expressions">Lambda Expressions</a></li>
                 </ul>
             </li>
             <li>
@@ -2812,6 +2813,65 @@
 
         <a id="other-c++-features-designated-initializers" />
         <h3 class="section-header">Designated Initializers</h3>
+        <p>
+            Use designated initializers only in their C++20-compliant form.
+        </p>
+
+        <h4>Definition:</h4>
+        <p>
+            <a
+            href="https://en.cppreference.com/w/cpp/language/aggregate_initialization#Designated_initializers">Designated
+            initializers</a> are a syntax that allows for initializing an aggregate (<q>plain old struct</q>) by naming
+            its fields explicitly:
+            <pre>
+                <code>
+                    struct Point 
+                    {
+                        float x = 0.0;
+                        float y = 0.0;
+                        float z = 0.0;
+                    };
+                    
+                    Point p = 
+                    {
+                        .x = 1.0,
+                        .y = 2.0,
+                        // z will be 0.0
+                    };
+                </code>
+            </pre>
+        </p>
+        <p>
+            The explicitly listed fields will be initialized as specified, and others will be initialized in the same
+            way they would be in a traditional aggregate initialization expression like <code>Point {1.0, 2.0}</code>.
+        </p>
+
+        <h4>Pros:</h4>
+        <p>
+            Designated initializers can make for convenient and highly readable aggregate expressions, especially for
+            structs with less straightfoward ordering of fields than the <code>Point</code> example above.
+        </p>
+        
+        <h4>Cons:</h4>
+        <p>
+            While designated initializers have long been part of the C standard and supported by C++ compilers as an
+            extension, only recently have they made it into the C++ standard, being added as part of C++20.
+        </p>
+        <p>
+            The rules in the C++ standard are stricter than in C and compiler extensions, requiring that the designated
+            initializers appear in the same order as the fields appear in the struct definition. So in the example
+            above, it is legal according to C++20 to initialize <code>x</code> and then <code>y</code>, but not
+            <code>y</code> and then <code>x</code>.
+        </p>
+
+        <h4>Decision:</h4>
+        <p>
+            Use designated initializers only in the form that is compatible with the C++20 standard: with initializers
+            in the same order as the corresponding fields appear in the struct definition.
+        </p>
+
+        <a id="other-c++-features-lambda-expressions" />
+        <h3 class="section-header">Lambda Expressions</h3>
         <p>
 
         </p>
