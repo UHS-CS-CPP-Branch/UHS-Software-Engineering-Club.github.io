@@ -105,6 +105,7 @@
                     Deduction</a></li>
                     <li><a href="#other-c++-features-designated-initializers">Designated Initializers</a></li>
                     <li><a href="#other-c++-features-lambda-expressions">Lambda Expressions</a></li>
+                    <li><a href="#other-c++-features-template-metaprogramming">Template Metaprogramming</a></li>
                 </ul>
             </li>
             <li>
@@ -2872,6 +2873,192 @@
 
         <a id="other-c++-features-lambda-expressions" />
         <h3 class="section-header">Lambda Expressions</h3>
+        <p>
+            Use lambda experssions where appropriate. Prefer explicit captures when the lambda will escape the current scope.
+        </p>
+
+        <h4>Definition:</h4>
+        <p>
+            Lambda expressions are a concise way of creating anonymous function objects. They're often useful when
+            passing functions as arguments. For example:
+            <pre>
+                <code>
+                    std::sort(v.begin(), v.end(), [](int x, int y)
+                    {
+                        return Weight(x) < Weight(y);
+                    });
+                </code>
+            </pre>
+        </p>
+        <p>
+            They further allow capturing variables from the enclosing scope either explicitly by name, or implicitly
+            using a default capture. Explicit captures require each variable to be listed, as either a value or
+            reference capture:
+            <pre>
+                <code>
+                    int weight = 3;
+                    int sum = 0;
+                    // Captures `weight` by value and `sum` by reference.
+                    std::for_each(v.begin(), v.end(), [weight, &sum](int x)
+                    {
+                        sum += weight * x;
+                    });
+                </code>
+            </pre>
+        </p>
+        <p>
+            Default captures implicitly capture any variable referenced in the lambda body, including <code>this</code>
+            if any members are used:
+            <pre>
+                <code>
+                    const std::vector&lt;int&gt; lookup_table = ...;
+                    std::vector&lt;int&gt; indices = ...;
+                    // Captures `lookup_table` by reference, sorts `indices` by the value
+                    // of the associated element in `lookup_table`.
+                    std::sort(indices.begin(), indices.end(), [&](int a, int b)
+                    {
+                        return lookup_table[a] < lookup_table[b];
+                    });
+                </code>
+            </pre>
+        </p>
+        <p>
+            A varaible capture can also have an explicit initializer, which can be used for capturing move-only
+            variables by value, or for other situations not handled by ordinary reference or value captures:
+            <pre>
+                <code>
+                    std::unique_ptr<Foo> foo = ...;
+                    [foo = std::move(foo)] ()
+                    {
+                        ...
+                    }
+                </code>
+            </pre>
+        </p>
+        <p>
+            Such captures (often called <q>init captures</q> or <q>generalized lambda captures</q>) need not actually
+            <q>capture</q> anything from the enclosing scope, or even have a name from the enclosing scope; this syntax
+            is a fully general way to define members of a lambda object:
+            <pre>
+                <code>
+                    [foo = std::vector<int>({1, 2, 3})] ()
+                    {
+                        ...
+                    }
+                </code>
+            </pre>
+        </p>
+        <p>
+            The type of a capture with an initializer is deduced using the same rules as <code>auto</code>.
+        </p>
+
+        <h4>Pros:</h4>
+        <ul>
+            <li>
+                Lambdas are much more concise than other ways of defining function objects to be passed to STL
+                algorithms, which can be a readability improvement.
+            </li>
+            <li>
+                Appropriate use of default captures can remove redundancy and highlight important exceptions from the default.
+            </li>
+            <li>
+                Lambdas, <code>std::function</code>, and <code>std::bind</code> can be used in combination as a general
+                purpose callback mechanism; they make it easy to write functions that take bound functions as arguments.
+            </li>
+        </ul>
+
+        <h4>Cons:</h4>
+        <ul>
+            <li>
+                Variable captuers in lambdas can be a source of dangling-pointer bugs, particularly if a lambda escapes
+                the current scope.
+            </li>
+            <li>
+                Default captures by value can be misleading because they do not prevent dangling-pointer bugs. Capturing
+                a pointer by value doesn't cause a deep copy, so it often has the same lifetime issues as capture by
+                reference. This is especially confusing when capturing <code>this</code> by value, since the use of
+                <code>this</code> is often implicit.
+            </li>
+            <li>
+                Captures actually declare new variables (whether or not the captures have initializers), but they look
+                nothing like any other variable declaration syntax in C++. In particular, there's no place for the
+                varaible's type, or even an <code>auto</code> placeholder (although init captures can indicate it
+                indirectly, e.g., with a cast). This can make it difficult to even recognize them as declarations.
+            </li>
+            <li>
+                Init captures inherently repy on <a href="#other-c++-features-type-deduction-including-auto">type deduction</a>, and suffer from many of the same
+                drawbacks as <code>auto</code>, with the additional problem that the syntax doesn't even cue the reader
+                that deduction is taking place.
+            </li>
+            <li>
+                It's possible for use of lambdas to get out of hand; very long nested anonymous functions can make code
+                harder to understand.
+            </li>
+        </ul>
+
+        <h4>Decision:</h4>
+        <ul>
+            <li>
+                Use lambda expressions where appropriate, with formatting as described <a href="#formatting-lambda-expressions">below</a>.
+            </li>
+            <li>
+                Prefer explicit captures if the lambda may escape the current scope. For example, instead of:
+                <pre>
+                    <code style="color: red;">
+                        {
+                            Foo foo;
+                            ...
+                            executor->Schedule([&] { Frobnicate(foo); })
+                            ...
+                        }
+                        // BAD! The fact that the lambda makes use of a reference to `foo` and
+                        // possibly `this` (if `Frobnicate` is a member function) may not be
+                        // apparent on a cursory inspection. If the lambda is invoked after
+                        // the function returns, that would be bad, because both `foo`
+                        // and the enclosing object could have been destroyed.
+                    </code>
+                </pre>
+                prefer to write:
+                <pre>
+                    <code>
+                        {
+                            Foo foo;
+                            ...
+                            executor->Schedule([&foo] { Frobnicate(foo); })
+                            ...
+                        }
+                        // BETTER - The compile will fail if `Frobnicate` is a member
+                        // function, and it's clearer that `foo` is dangerously captured by
+                        // reference.
+                    </code>
+                </pre>
+            </li>
+            <li>
+                Use default capture by reference (<code>&lsqb;&&rsqb;</code>) only when the lifetime of the lambda is
+                obviously shorter than any potential captures.
+            </li>
+            <li>
+                Use default capture by value (<code>&lsqb;=&rsqb;</code>) only as a means of binding a few variables for
+                a short lambda, where the set of captured variables is obvious at a glance, and which does not result in
+                capturing <code>this</code> implicitly. (That means that a lambda that appears in a non-static class
+                member function and refers to non-static class members in its body must capture <code>this</code>
+                explicitly or via <code>&lsqb;&&rsqb;</code>.) Prefer not to write long or complex lambdas with default
+                capture by value.
+            </li>
+            <li>
+                Use captures only to actually capture variables from the enclosing scope. Do not use captures with
+                initializers to introduce new names, or to substantially change the meaning of an existing name.
+                Instead, declare a new variable in the conventional way and then capture it, or avoid the lambda
+                shorthand and define a function object explicitly.
+            </li>
+            <li>
+                See the section on <a href="#other-c++-features-type-deduction-including-auto">type deduction</a> for
+                guidance on specifying the parameter and return types.
+            </li>
+        </ul>
+
+        <a id="other-c++-features-template-metaprogramming" />
+        <h3 class="section-header">Template Metaprogramming</h3>
         <p>
 
         </p>
