@@ -106,6 +106,7 @@
                     <li><a href="#other-c++-features-designated-initializers">Designated Initializers</a></li>
                     <li><a href="#other-c++-features-lambda-expressions">Lambda Expressions</a></li>
                     <li><a href="#other-c++-features-template-metaprogramming">Template Metaprogramming</a></li>
+                    <li><a href="#other-c++-features-boost">Boost</a></li>
                 </ul>
             </li>
             <li>
@@ -3059,6 +3060,68 @@
 
         <a id="other-c++-features-template-metaprogramming" />
         <h3 class="section-header">Template Metaprogramming</h3>
+        <p>
+            Avoid complicated template programming.
+        </p>
+
+        <h4>Definition:</h4>
+        <p>
+            Template metaprogramming refers a family of techniques that exploit the fact that the C++ template
+            instantiation mechanism is Turing complete and can be used to perform arbitrary compile-time computation in
+            the type domain.
+        </p>
+
+        <h4>Pros:</h4>
+        <p>
+            Template metaprogramming allows extremely flexible interfaces that are type safe and high performance.
+            Facilities like <a href="https://github.com/google/googletest">GoogleTest</a>, <code>std::tuple</code>,
+            <code>std::function</code>, and Boost.Spirit would be impossible without it.
+        </p>
+
+        <h4>Cons:</h4>
+        <p>
+            The techniques used in template metaprogramming are often obscure to anyone but language experts. Code that
+            uses templates in complicated ways is often unreadable, and is hard to debug or maintain.
+        </p>
+        <p>
+            Template metaprogramming often leads to extremely poor compile time error messages: even if an interface is
+            simple, the complicated implementation details become visible when the user does something wrong.
+        </p>
+        <p>
+            Template metaprogramming interferes with large scale refactoring by making the job of refactoring tools
+            harder. First, the template code is expanded in multiple contexts, and it's hard to verify that the
+            transformation makes sense in all of them. Second, some refactoring tools work with an AST that only
+            represents the structure of the code after template expansion. It can be difficult to automatically work
+            back to the original source construct that needs to be rewritten.
+        </p>
+
+        <h4>Decision:</h4>
+        <p>
+            Template metaprogramming sometimes allows cleaner and easier-to-use interfaces than would be possible
+            without it, but it's also often a temptation to be overly clever. It's best used in a small number of low
+            level components where the extra maintenance burden is spread out over a large number of uses.
+        </p>
+        <p>
+            Think twice before using template metaprogramming or other complicated template techniques; think about
+            whether the average member of one's team will be able to understand their code well enough to maintain it
+            after one switches to another project, or whether a non-C++ programmer or someone casually browsing the code
+            base will be able to understand the error messages or trace the flow of a function they want to call. If one
+            is using recursive template instantiations or type lists or metafunctions or expression templates, or relying
+            on SFINAE or on the <code>sizeof</code> trick for detecting function overload resolution, then there's a
+            good chance one has gone too far.
+        </p>
+        <p>
+            If one uses template metaprogramming, one should expect to put considerable effort into minimizing and
+            isolating the complexity. One should hide metaprogramming as an implementation detail whenever possible, so
+            that user-facing headers are readable, and one should make sure that tricky code is especially well
+            commneted. One should carefully document how the code is used, and one should say something about what the
+            <q>generated</q> code looks like. Pay extra attention to the error messages that the compiler emits when
+            users make mistakes. The error messages are part of one's user interface, and one's code should be tweaked
+            as necessary so that the error messages are understandable and actionable from a user point of view.
+        </p>
+
+        <a id="other-c++-features-boost" />
+        <h3 class="section-header">Boost</h3>
         <p>
 
         </p>
